@@ -1,26 +1,53 @@
-import { Telegraf } from 'telegraf';
+import { Telegraf, session } from 'telegraf';
 import { code } from 'telegraf/format';
 import { message } from 'telegraf/filters';
 import config from 'config';
 import { ogg } from './ogg.js';
 import { openai } from './openai.js';
 
+const INIT_SESSION = {
+  messages: [],
+}
+
 const bot =  new Telegraf(config.get('TELEGRAM_BOT_TOKEN'));
 
-/** Обработка  по фильтрам. Например, текст, голосовое сообщение */
+bot.use(session());
+
+/** Обработка команд */
+bot.command('start', async ctx => {
+  ctx.session = INIT_SESSION;
+  await ctx.reply('Жду вашего голосового или тексового запроса')
+});
+bot.command('new dialog', async ctx => {
+  ctx.session = INIT_SESSION;
+  await ctx.reply('Жду вашего голосового или тексового запроса')
+})
+
+/** Обработка текстового сообщения */
 bot.on(message('text'), async ctx => {
   try {
+    if(!ctx.session) {
+      ctx.session = INIT_SESSION;
+    };
     await ctx.reply(code('Запрос принял. Жду ответа от сервера.'));
-    
-    const messages = [{ role: openai.roles.USER, content: ctx.message.text }]
-    const response = await openai.chat(messages);
+    ctx.session.messages.push({ role: openai.roles.USER, content: ctx.message.text });
+
+    const response = await openai.chat(ctx.session.messages);
+    ctx.session.messages.push({ role: openai.roles.ASSISTANT, content: response.content });
+
     await ctx.reply(response.content);
   } catch (e) {
     console.log('Error while voice message: ', e.message);
   }
 } )
+
+/** Обработка голосового сообщения */
 bot.on(message('voice'), async ctx => {
   try {
+    if(!ctx.session) {
+      ctx.session = INIT_SESSION;
+    };
+
     await ctx.reply(code('Запрос принял. Жду ответа от сервера.'))
     const voiceMessageFileLink = (await ctx.telegram.getFileLink(ctx.message.voice.file_id));
     const userId = String(ctx.message.from.id);
@@ -31,18 +58,16 @@ bot.on(message('voice'), async ctx => {
     const text = await openai.transcription(mp3Path);
     await ctx.reply(`Ваш запрос: ${text}`);
 
-    const messages = [{ role: openai.roles.USER, content: text }]
-    const response = await openai.chat(messages);
+    ctx.session.messages.push({ role: openai.roles.USER, content: text });
+
+    const response = await openai.chat(ctx.session.messages);
+    ctx.session.messages.push({ role: openai.roles.ASSISTANT, content: response.content });
+
     await ctx.reply(response.content);
   } catch (e) {
     console.log('Error while voice message: ', e.message);
   }
 } )
-
-/** Обработка команд */
-bot.command('start', async ctx => {
-  await ctx.reply(JSON.stringify(ctx.message, null, 2))
-})
 
 
 /** Start bot */
