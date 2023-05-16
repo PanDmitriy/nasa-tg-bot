@@ -1,27 +1,43 @@
-import { Telegraf, session } from 'telegraf';
+import { Telegraf, Telegram, session } from 'telegraf';
 import { code } from 'telegraf/format';
 import { message } from 'telegraf/filters';
 import config from 'config';
 import { ogg } from './ogg.js';
 import { openai } from './openai.js';
+import { nasa } from './nasa.js';
 
 const INIT_SESSION = {
   messages: [],
-}
+};
+
+const COMMANDS = [
+  { command: "start", description: "Запуск" },
+  { command: "new", description: "Новый чат с GPT" },
+  { command: "apod", description: "NASA. Астрономическое фото дня" }
+];
 
 const bot =  new Telegraf(config.get('TELEGRAM_BOT_TOKEN'));
-
 bot.use(session());
+bot.telegram.setMyCommands(COMMANDS);
 
 /** Обработка команд */
 bot.command('start', async ctx => {
   ctx.session = INIT_SESSION;
   await ctx.reply('Жду вашего голосового или тексового запроса')
 });
-bot.command('new dialog', async ctx => {
+
+bot.command('new', async ctx => {
   ctx.session = INIT_SESSION;
   await ctx.reply('Жду вашего голосового или тексового запроса')
 })
+
+bot.command('apod', async ctx => {
+  const photo = await nasa.getPhotoOfDay();
+  await ctx.replyWithPhoto(photo.url, {caption: photo.title });
+  await ctx.reply(photo.explanation);
+  await ctx.reply(`Автор ${photo.copyright}`);
+})
+/** ---------- */
 
 /** Обработка текстового сообщения */
 bot.on(message('text'), async ctx => {
@@ -40,6 +56,7 @@ bot.on(message('text'), async ctx => {
     console.log('Error while voice message: ', e.message);
   }
 } )
+/** ---------- */
 
 /** Обработка голосового сообщения */
 bot.on(message('voice'), async ctx => {
@@ -68,6 +85,7 @@ bot.on(message('voice'), async ctx => {
     console.log('Error while voice message: ', e.message);
   }
 } )
+/** ---------- */
 
 
 /** Start bot */
