@@ -35,7 +35,7 @@ bot.command('apod', async ctx => {
   const photo = await nasa.getPhotoOfDay();
   await ctx.replyWithPhoto(photo.url, {caption: photo.title });
   await ctx.reply(photo.explanation);
-  await ctx.reply(`Автор ${photo.copyright}`);
+  photo.copyright && await ctx.reply(`Автор ${photo.copyright}`);
 })
 /** ---------- */
 
