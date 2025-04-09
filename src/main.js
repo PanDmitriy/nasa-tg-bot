@@ -1,7 +1,9 @@
-import { Telegraf, Telegram, session } from 'telegraf';
+import dotenv from 'dotenv';
+dotenv.config();
+
+import { Telegraf, session } from 'telegraf';
 import { code } from 'telegraf/format';
 import { message } from 'telegraf/filters';
-import config from 'config';
 import { ogg } from './ogg.js';
 import { openai } from './openai.js';
 import { nasa } from './nasa.js';
@@ -16,7 +18,7 @@ const COMMANDS = [
   { command: "apod", description: "NASA. Астрономическое фото дня" }
 ];
 
-const bot =  new Telegraf(config.get('TELEGRAM_BOT_TOKEN'));
+const bot =  new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 bot.use(session());
 bot.telegram.setMyCommands(COMMANDS);
 

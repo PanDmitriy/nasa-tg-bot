@@ -1,46 +1,48 @@
-import { Configuration, OpenAIApi } from 'openai';
-import config from 'config';
-import { createReadStream } from 'fs';
-import { removeFile } from './utils.js';
+import { OpenAI } from 'openai';
+import { createReadStream, promises as fsPromises } from 'fs';
+import dotenv from 'dotenv';
+dotenv.config();
 
-class OpenAI {
+  class OpenAIService {
   roles = {
     SYSTEM: "system",
     USER: "user",
     ASSISTANT: "assistant"
   }
 
-  constructor(apiKey) {
-    const configuration = new Configuration({
-      apiKey,
+  constructor() {
+    this.client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
     });
-    this.openai = new OpenAIApi(configuration);
-  };
+  
+  }
 
   async chat(messages) {
     try {
-      const responce = await this.openai.createChatCompletion({
-        model: 'gpt-3.5-turbo',
+      const response = await this.client.chat.completions.create({
+        model: 'gpt-4o',
         messages,
       });
-      return responce.data.choices[0].message
+      return response.choices[0].message;
     } catch (e) {
-      console.log('Error while gpt chat: ', e.message);
+      console.error('Error while calling GPT chat API:', e.message);
+      throw new Error('Failed to get a response from the OpenAI chat API');
     }
   };
 
   async transcription(filepath) {
     try {
-      const response = await this.openai.createTranscription(
-        createReadStream(filepath),
+      const response = await this.client.audio.transcriptions.create(
+        createReadStream(filepath), 
         'whisper-1'
       );
-      removeFile(filepath);
-      return response.data.text;
+      await fsPromises.unlink(filepath);
+      return response.text;
     } catch (e) {
-      console.log('Error while transcription: ', e.message);
+      console.error('Error while transcribing audio:', e.message);
+      throw new Error('Failed to transcribe the audio file');
     }
   };
 }
 
-export const openai = new OpenAI(config.get("OPENAI_API_KEY"));
+export const openai = new OpenAIService();

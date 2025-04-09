@@ -1,14 +1,14 @@
 import axios from 'axios';
-import config from 'config';
+import dotenv from 'dotenv';
+dotenv.config();
 
 class NasaApi {
-  constructor(apiKey) {
-    this.apiKey = apiKey;
+  constructor() {
   };
 
   async getPhotoOfDay() {
     try {
-      const url = `https://api.nasa.gov/planetary/apod?api_key=${this.apiKey}`;
+      const url = `https://api.nasa.gov/planetary/apod?api_key=${process.env.NASA_API_KEY}`;
 
       const response = await axios({
         method: 'get',
@@ -21,4 +21,4 @@ class NasaApi {
   };
 }
 
-export const nasa = new NasaApi(config.get("NASA_API_KEY"));
+export const nasa = new NasaApi();
