@@ -15,7 +15,8 @@ const INIT_SESSION = {
 const COMMANDS = [
   { command: "start", description: "Запуск" },
   { command: "new", description: "Новый чат с GPT" },
-  { command: "apod", description: "NASA. Астрономическое фото дня" }
+  { command: "apod", description: "NASA. Астрономическое фото дня" },
+  { command: "iss", description: "Показывает, где сейчас находится Международная космическая станция" }
 ];
 
 const bot =  new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
@@ -33,13 +34,28 @@ bot.command('new', async ctx => {
   await ctx.reply('Жду вашего голосового или тексового запроса')
 })
 
+/** NASA */
+
 bot.command('apod', async ctx => {
   const photo = await nasa.getPhotoOfDay();
   await ctx.replyWithPhoto(photo.url, {caption: photo.title });
   await ctx.reply(photo.explanation);
   photo.copyright && await ctx.reply(`Автор ${photo.copyright}`);
 })
-/** ---------- */
+
+bot.command('iss', async (ctx) => {
+  const data = await nasa.getISSLocation();
+  if (!data || data.message !== 'success') {
+    return ctx.reply('🚫 Не удалось получить данные о местоположении МКС.');
+  }
+
+  const { latitude, longitude } = data.iss_position;
+  const mapUrl = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=4/${latitude}/${longitude}`;
+
+  await ctx.reply(`🛰️ Сейчас МКС находится в точке:\n\n🌍 Широта: ${latitude}\n🌐 Долгота: ${longitude}\n\n📍 [Открыть на карте](${mapUrl})`, {
+    parse_mode: 'Markdown',
+  });
+});
 
 /** Обработка текстового сообщения */
 bot.on(message('text'), async ctx => {
