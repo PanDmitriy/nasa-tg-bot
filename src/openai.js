@@ -10,39 +10,62 @@ dotenv.config();
     ASSISTANT: "assistant"
   }
 
-  constructor() {
-    this.client = new OpenAI({
+  client = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
   
-  }
 
   async chat(messages) {
     try {
-      const response = await this.client.chat.completions.create({
+      if (!process.env.OPENAI_API_KEY) {
+        console.warn('⚠️ OPENAI_API_KEY не установлен. Используется заглушка.');
+        return {
+          role: this.roles.ASSISTANT,
+          content: "🔒 API ключ не настроен. Ответ сгенерирован локально."
+        };
+      }
+  
+      const response = await this.openai.chat.completions.create({
         model: 'gpt-4o',
         messages,
       });
+  
       return response.choices[0].message;
     } catch (e) {
-      console.error('Error while calling GPT chat API:', e.message);
-      throw new Error('Failed to get a response from the OpenAI chat API');
+      console.error('🚫 Ошибка OpenAI:', e.message);
+  
+      // Простая заглушка-ответ на ошибку
+      return {
+        role: this.roles.ASSISTANT,
+        content: "🤖 Сейчас я не могу обратиться к GPT, но скоро всё заработает!"
+      };
     }
   };
 
   async transcription(filepath) {
     try {
-      const response = await this.client.audio.transcriptions.create(
-        createReadStream(filepath), 
+      if (!process.env.OPENAI_API_KEY) {
+        console.warn('⚠️ OPENAI_API_KEY не установлен. Используется заглушка для транскрипции.');
+        await fsPromises.unlink(filepath);
+        return '🔒 Ключ API не настроен. Заглушка: здесь был бы текст с аудио.';
+      }
+  
+      const response = await this.openai.audio.transcriptions.create(
+        createReadStream(filepath),
         'whisper-1'
       );
+  
       await fsPromises.unlink(filepath);
       return response.text;
+  
     } catch (e) {
-      console.error('Error while transcribing audio:', e.message);
-      throw new Error('Failed to transcribe the audio file');
+      console.error('🚫 Ошибка при транскрибации аудио:', e.message);
+      await fsPromises.unlink(filepath);
+  
+      // Заглушка на случай ошибки
+      return '🤖 Временно не могу обработать аудио. Попробуйте позже!';
     }
-  };
+  }
 }
 
 export const openai = new OpenAIService();

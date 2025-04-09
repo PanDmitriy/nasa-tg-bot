@@ -55,7 +55,9 @@ bot.on(message('text'), async ctx => {
 
     await ctx.reply(response.content);
   } catch (e) {
-    console.log('Error while voice message: ', e.message);
+    await ctx.reply(code('К сожалению, ошибка сервиса'));
+    await ctx.reply(code(`Error while text message: ${e.message}`));
+    console.log('Error while text message: ', e.message);
   }
 } )
 /** ---------- */
@@ -84,6 +86,8 @@ bot.on(message('voice'), async ctx => {
 
     await ctx.reply(response.content);
   } catch (e) {
+    await ctx.reply(code('К сожалению, ошибка сервиса'));
+    await ctx.reply(code(`Error while voice message: ${e.message}`));
     console.log('Error while voice message: ', e.message);
   }
 } )
