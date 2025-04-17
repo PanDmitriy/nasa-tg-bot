@@ -5,6 +5,7 @@ import { Telegraf, Context } from 'telegraf';
 import { code } from 'telegraf/format';
 import { nasa } from './nasa.js';
 import { Command, NasaPhoto, ISSLocation } from './types/index.js';
+import { InlineKeyboard } from 'telegraf/typings/core/types/typegram';
 
 interface BotContext extends Context {
   session?: any;
@@ -13,7 +14,7 @@ interface BotContext extends Context {
 const COMMANDS: Command[] = [
   { command: "start", description: "Запуск" },
   { command: "apod", description: "NASA. Астрономическое фото дня" },
-  { command: "iss", description: "Показывает, где сейчас находится Международная космическая станция" }
+  { command: "iss", description: "Показывает, где сейчас находится МКС" }
 ];
 
 const bot = new Telegraf<BotContext>(process.env.TELEGRAM_BOT_TOKEN || '');
@@ -21,7 +22,9 @@ bot.telegram.setMyCommands(COMMANDS);
 
 /** Обработка команд */
 bot.command('start', async (ctx) => {
-  await ctx.reply('Добро пожаловать в NASA бот! Используйте команды:\n/apod - получить фото дня\n/iss - узнать где МКС');
+  await ctx.reply('Добро пожаловать в NASA бот! Используйте команды:\n' +
+    '/apod - получить фото дня\n' +
+    '/iss - узнать где МКС');
 });
 
 /** NASA */
@@ -42,19 +45,50 @@ bot.command('apod', async (ctx) => {
 bot.command('iss', async (ctx) => {
   try {
     const data = await nasa.getISSLocation();
-    if (!data || data.message !== 'success') {
-      return ctx.reply('🚫 Не удалось получить данные о местоположении МКС.');
-    }
+    
+    const date = new Date(data.timestamp * 1000);
+    const formattedDate = date.toLocaleString('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
 
-    const { latitude, longitude } = data.iss_position;
-    const mapUrl = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=4/${latitude}/${longitude}`;
+    const message = `🛰️ *Международная космическая станция*\n\n` +
+      `🌍 *Координаты:*\n` +
+      `Широта: ${data.latitude.toFixed(4)}°\n` +
+      `Долгота: ${data.longitude.toFixed(4)}°\n\n` +
+      `📊 *Параметры орбиты:*\n` +
+      `Скорость: ${(data.velocity * 3.6).toFixed(2)} км/ч\n` +
+      `Высота: ${data.altitude.toFixed(2)} км\n` +
+      `Видимость: ${data.visibility}\n` +
+      `Зона покрытия: ${data.footprint.toFixed(2)} км\n\n` +
+      `☀️ *Солнечная позиция:*\n` +
+      `Широта: ${data.solar_lat.toFixed(2)}°\n` +
+      `Долгота: ${data.solar_lon.toFixed(2)}°\n\n` +
+      `🕒 *Время обновления:*\n` +
+      `${formattedDate}`;
 
-    await ctx.reply(`🛰️ Сейчас МКС находится в точке:\n\n🌍 Широта: ${latitude}\n🌐 Долгота: ${longitude}\n\n📍 [Открыть на карте](${mapUrl})`, {
+    // Создаем кнопки для навигационных приложений
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '🗺️ Google Maps', url: `https://www.google.com/maps/search/?api=1&query=${data.latitude},${data.longitude}` },
+          { text: '📍 Яндекс.Карты', url: `https://yandex.ru/maps/?text=${data.latitude},${data.longitude}` }
+        ],
+      ]
+    };
+
+    await ctx.reply(message, {
       parse_mode: 'Markdown',
+      reply_markup: keyboard
     });
   } catch (error) {
-    await ctx.reply('Произошла ошибка при получении данных о МКС');
     console.error('Error in iss command:', error);
+    await ctx.reply('🚫 Произошла ошибка при получении данных о МКС. Попробуйте позже.');
   }
 });
 

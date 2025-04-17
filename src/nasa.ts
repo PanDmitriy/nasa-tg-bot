@@ -7,7 +7,7 @@ dotenv.config();
 class NasaApi {
   private readonly NASA_API_KEY: string | undefined;
   private readonly APOD_URL: string;
-  private readonly ISS_URL: string = 'http://api.open-notify.org/iss-now.json';
+  private readonly ISS_URL: string = 'https://api.wheretheiss.at/v1/satellites/25544';
 
   constructor() {
     this.NASA_API_KEY = process.env.NASA_API_KEY;
@@ -31,7 +31,15 @@ class NasaApi {
   async getISSLocation(): Promise<ISSLocation> {
     try {
       const response = await axios.get<ISSLocation>(this.ISS_URL);
-      return response.data;
+      const data = response.data;
+
+      // Определяем видимость на основе солнечной широты
+      const visibility = data.solar_lat > 0 ? 'Дневная' : 'Ночная';
+
+      return {
+        ...data,
+        visibility
+      };
     } catch (error) {
       console.error('Error while requesting ISS location:', error instanceof Error ? error.message : 'Unknown error');
       throw error;
