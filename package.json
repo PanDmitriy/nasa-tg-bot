@@ -1,7 +1,7 @@
 {
-  "name": "gpt-chat-bot",
+  "name": "nasa-telegram-bot",
   "version": "1.0.0",
-  "description": "",
+  "description": "Telegram bot for NASA API",
   "main": "dist/main.js",
   "type": "module",
   "scripts": {
@@ -11,26 +11,21 @@
     "clean": "rimraf dist",
     "prebuild": "npm run clean"
   },
-  "keywords": [],
+  "keywords": ["nasa", "telegram", "bot", "space"],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@types/node": "^20.11.24",
     "cross-env": "^7.0.3",
     "dotenv": "^16.0.0",
-    "dotenv-cli": "^8.0.0",
     "nodemon": "^2.0.22",
     "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
-    "tsx": "^4.19.3",
+    "tsx": "^4.7.1",
     "typescript": "^5.3.3"
   },
   "dependencies": {
     "axios": "^1.4.0",
-    "config": "^3.3.9",
-    "fluent-ffmpeg": "^2.1.2",
-    "openai": "^4.93.0",
     "telegraf": "^4.12.2"
   }
 }
