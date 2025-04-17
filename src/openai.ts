@@ -1,12 +1,11 @@
-import { OpenAI } from 'openai';
+import OpenAI from 'openai';
 import { createReadStream, promises as fsPromises } from 'fs';
-import dotenv from 'dotenv';
-import { Message } from './types/index.js';
-import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { Message } from './types/index.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(__dirname, '../.env') });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 console.log('Environment variables:', {
   OPENAI_API_KEY: process.env.OPENAI_API_KEY ? 'Set' : 'Not set',
@@ -14,22 +13,23 @@ console.log('Environment variables:', {
 });
 
 interface OpenAIConfig {
-  apiKey: string | undefined;
+  apiKey: string;
+  model: string;
 }
 
 interface ChatResponse {
-  role: 'system' | 'user' | 'assistant';
   content: string;
+  role: string;
 }
 
 class OpenAIService {
-  private roles = {
-    SYSTEM: "system" as const,
-    USER: "user" as const,
-    ASSISTANT: "assistant" as const
-  };
-
   private client: OpenAI;
+  private model: string;
+  public roles = {
+    SYSTEM: 'system',
+    USER: 'user',
+    ASSISTANT: 'assistant'
+  };
 
   constructor(config: OpenAIConfig) {
     if (!config.apiKey) {
@@ -37,8 +37,9 @@ class OpenAIService {
     }
     console.log('Initializing OpenAI client with API key:', config.apiKey.substring(0, 10) + '...');
     this.client = new OpenAI({
-      apiKey: config.apiKey,
+      apiKey: config.apiKey
     });
+    this.model = config.model || 'gpt-3.5-turbo';
   }
 
   async chat(messages: Message[]): Promise<ChatResponse> {
@@ -52,7 +53,7 @@ class OpenAIService {
       }
 
       const response = await this.client.chat.completions.create({
-        model: 'gpt-4',
+        model: this.model,
         messages: messages.map(msg => ({
           role: msg.role,
           content: msg.content
@@ -98,5 +99,6 @@ class OpenAIService {
 }
 
 export const openai = new OpenAIService({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY || '',
+  model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
 }); 

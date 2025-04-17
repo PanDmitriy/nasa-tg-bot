@@ -5,9 +5,9 @@
   "main": "dist/main.js",
   "type": "module",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development nodemon --exec node --loader ts-node/esm ./src/main.ts",
+    "dev": "cross-env NODE_ENV=development dotenv -e .env -- nodemon --exec tsx src/main.ts",
     "build": "tsc",
-    "start": "cross-env NODE_ENV=production node ./dist/main.js",
+    "start": "cross-env NODE_ENV=production dotenv -e .env -- node ./dist/main.js",
     "clean": "rimraf dist",
     "prebuild": "npm run clean"
   },
@@ -19,9 +19,11 @@
     "@types/node": "^20.11.24",
     "cross-env": "^7.0.3",
     "dotenv": "^16.0.0",
+    "dotenv-cli": "^8.0.0",
     "nodemon": "^2.0.22",
     "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.3",
     "typescript": "^5.3.3"
   },
   "dependencies": {
