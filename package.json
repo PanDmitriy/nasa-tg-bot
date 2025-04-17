@@ -2,25 +2,31 @@
   "name": "gpt-chat-bot",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/main.js",
   "type": "module",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development nodemon ./src/main.js",
-    "start": "cross-env NODE_ENV=production node ./src/main.js"
+    "dev": "cross-env NODE_ENV=development nodemon --exec node --loader ts-node/esm ./src/main.ts",
+    "build": "tsc",
+    "start": "cross-env NODE_ENV=production node ./dist/main.js",
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@types/node": "^20.11.24",
     "cross-env": "^7.0.3",
     "dotenv": "^16.0.0",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "axios": "^1.4.0",
     "config": "^3.3.9",
-    "cross-env": "^7.0.3",
     "fluent-ffmpeg": "^2.1.2",
     "openai": "^4.93.0",
     "telegraf": "^4.12.2"
