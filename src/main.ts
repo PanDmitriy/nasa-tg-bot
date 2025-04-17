@@ -5,7 +5,7 @@ import { Telegraf, Context } from 'telegraf';
 import { code } from 'telegraf/format';
 import { nasa } from './nasa.js';
 import { Command, NasaPhoto, ISSLocation, EPICImage, Asteroid } from './types/index.js';
-import { InlineKeyboard } from 'telegraf/typings/core/types/typegram';
+import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 
 interface BotContext extends Context {
   session?: any;
@@ -26,7 +26,9 @@ bot.telegram.setMyCommands(COMMANDS);
 bot.command('start', async (ctx) => {
   await ctx.reply('Добро пожаловать в NASA бот! Используйте команды:\n' +
     '/apod - получить фото дня\n' +
-    '/iss - узнать где МКС');
+    '/iss - узнать где МКС\n' +
+    '/earth - последний снимок Земли из космоса\n' +
+    '/asteroids - ближайшие астероиды');
 });
 
 /** NASA */
@@ -98,6 +100,10 @@ bot.command('earth', async (ctx) => {
   try {
     const image = await nasa.getEarthImage();
     
+    if (!image || !image.date) {
+      throw new Error('Не удалось получить данные о снимке Земли');
+    }
+
     const date = new Date(image.date);
     const formattedDate = date.toLocaleString('ru-RU', {
       timeZone: 'Europe/Moscow',
@@ -112,9 +118,13 @@ bot.command('earth', async (ctx) => {
     const message = `🌍 *Снимок Земли из космоса*\n\n` +
       `📅 Дата: ${formattedDate}\n` +
       `📍 Координаты съемки:\n` +
-      `Широта: ${image.lat.toFixed(2)}°\n` +
-      `Долгота: ${image.lon.toFixed(2)}°\n\n` +
+      `Широта: ${image.lat?.toFixed(2) || 'неизвестно'}°\n` +
+      `Долгота: ${image.lon?.toFixed(2) || 'неизвестно'}°\n\n` +
       `🛰️ Снято с космического аппарата DSCOVR`;
+
+    if (!image.image) {
+      throw new Error('Не удалось получить URL изображения');
+    }
 
     await ctx.replyWithPhoto(image.image, {
       caption: message,
