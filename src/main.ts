@@ -4,7 +4,7 @@ dotenv.config();
 import { Telegraf, Context } from 'telegraf';
 import { code } from 'telegraf/format';
 import { nasa } from './nasa.js';
-import { Command, NasaPhoto, ISSLocation } from './types/index.js';
+import { Command, NasaPhoto, ISSLocation, EPICImage } from './types/index.js';
 import { InlineKeyboard } from 'telegraf/typings/core/types/typegram';
 
 interface BotContext extends Context {
@@ -14,7 +14,8 @@ interface BotContext extends Context {
 const COMMANDS: Command[] = [
   { command: "start", description: "Запуск" },
   { command: "apod", description: "NASA. Астрономическое фото дня" },
-  { command: "iss", description: "Показывает, где сейчас находится МКС" }
+  { command: "iss", description: "Показывает, где сейчас находится МКС" },
+  { command: "earth", description: "Показывает последний снимок Земли из космоса" }
 ];
 
 const bot = new Telegraf<BotContext>(process.env.TELEGRAM_BOT_TOKEN || '');
@@ -89,6 +90,38 @@ bot.command('iss', async (ctx) => {
   } catch (error) {
     console.error('Error in iss command:', error);
     await ctx.reply('🚫 Произошла ошибка при получении данных о МКС. Попробуйте позже.');
+  }
+});
+
+bot.command('earth', async (ctx) => {
+  try {
+    const image = await nasa.getEarthImage();
+    
+    const date = new Date(image.date);
+    const formattedDate = date.toLocaleString('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    const message = `🌍 *Снимок Земли из космоса*\n\n` +
+      `📅 Дата: ${formattedDate}\n` +
+      `📍 Координаты съемки:\n` +
+      `Широта: ${image.lat.toFixed(2)}°\n` +
+      `Долгота: ${image.lon.toFixed(2)}°\n\n` +
+      `🛰️ Снято с космического аппарата DSCOVR`;
+
+    await ctx.replyWithPhoto(image.image, {
+      caption: message,
+      parse_mode: 'Markdown'
+    });
+  } catch (error) {
+    console.error('Error in earth command:', error);
+    await ctx.reply('🚫 Произошла ошибка при получении снимка Земли. Попробуйте позже.');
   }
 });
 
