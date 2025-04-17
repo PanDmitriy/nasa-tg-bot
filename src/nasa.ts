@@ -1,6 +1,6 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
-import { NasaPhoto, ISSLocation, EPICImage } from './types/index.js';
+import { NasaPhoto, ISSLocation, EPICImage, AsteroidFeed, Asteroid } from './types/index.js';
 
 dotenv.config();
 
@@ -9,6 +9,7 @@ class NasaApi {
   private readonly APOD_URL: string;
   private readonly ISS_URL: string = 'https://api.wheretheiss.at/v1/satellites/25544';
   private readonly EPIC_URL: string = 'https://api.nasa.gov/EPIC/api/natural';
+  private readonly NEO_URL: string = 'https://api.nasa.gov/neo/rest/v1/feed';
 
   constructor() {
     this.NASA_API_KEY = process.env.NASA_API_KEY;
@@ -72,6 +73,42 @@ class NasaApi {
       return latestImage;
     } catch (error) {
       console.error('Error while requesting Earth image:', error instanceof Error ? error.message : 'Unknown error');
+      throw error;
+    }
+  }
+
+  async getAsteroids(days: number = 7): Promise<Asteroid[]> {
+    try {
+      if (!this.NASA_API_KEY) {
+        throw new Error('NASA API key is not configured');
+      }
+
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - days);
+
+      const response = await axios.get<AsteroidFeed>(`${this.NEO_URL}`, {
+        params: {
+          api_key: this.NASA_API_KEY,
+          start_date: startDate.toISOString().split('T')[0],
+          end_date: endDate.toISOString().split('T')[0]
+        }
+      });
+
+      // Собираем все астероиды в один массив
+      const allAsteroids: Asteroid[] = [];
+      Object.values(response.data.near_earth_objects).forEach(asteroids => {
+        allAsteroids.push(...asteroids);
+      });
+
+      // Сортируем по дате максимального сближения
+      return allAsteroids.sort((a, b) => {
+        const dateA = new Date(a.close_approach_data[0].close_approach_date);
+        const dateB = new Date(b.close_approach_data[0].close_approach_date);
+        return dateA.getTime() - dateB.getTime();
+      });
+    } catch (error) {
+      console.error('Error while requesting asteroids:', error instanceof Error ? error.message : 'Unknown error');
       throw error;
     }
   }
