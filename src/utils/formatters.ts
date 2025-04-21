@@ -61,5 +61,13 @@ export const formatters = {
     }
 
     return message;
+  },
+
+  formatMarsPhotoMessage(photo: any): string {
+    return `📸 Фотография с марсохода\n\n` +
+      `📅 Дата: ${this.formatDate(new Date(photo.earth_date))}\n` +
+      `📷 Камера: ${photo.camera.full_name}\n` +
+      `🚀 Марсоход: ${photo.rover.name}\n` +
+      `🛰️ Сол: ${photo.sol}`;
   }
 }; 

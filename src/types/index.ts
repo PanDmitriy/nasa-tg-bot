@@ -128,4 +128,15 @@ export interface AsteroidFeed {
   near_earth_objects: {
     [date: string]: Asteroid[];
   };
+}
+
+export interface UserSession {
+  photoViewState?: PhotoViewState;
+}
+
+export interface PhotoViewState {
+  rover: string;
+  photos: any[];
+  currentIndex: number;
+  messageId?: number;
 } 

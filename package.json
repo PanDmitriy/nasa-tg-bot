@@ -11,17 +11,23 @@
     "clean": "rimraf dist",
     "prebuild": "npm run clean"
   },
-  "keywords": ["nasa", "telegram", "bot", "space"],
+  "keywords": [
+    "nasa",
+    "telegram",
+    "bot",
+    "space"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^20.11.24",
     "cross-env": "^7.0.3",
     "dotenv": "^16.0.0",
+    "dotenv-cli": "^8.0.0",
     "nodemon": "^2.0.22",
     "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
-    "tsx": "^4.7.1",
+    "tsx": "^4.19.3",
     "typescript": "^5.3.3"
   },
   "dependencies": {
