@@ -1,28 +1,35 @@
 {
-  "name": "gpt-chat-bot",
+  "name": "gpt-chat-tg-bot",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "type": "module",
+  "description": "Telegram bot for NASA API",
+  "main": "dist/app/index.js",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development nodemon ./src/main.js",
-    "start": "cross-env NODE_ENV=production node ./src/main.js"
+    "start": "node dist/app/index.js",
+    "build": "tsc",
+    "dev": "ts-node-dev --respawn --transpile-only src/app/index.ts",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\""
   },
-  "keywords": [],
+  "keywords": [
+    "nasa",
+    "telegram",
+    "bot",
+    "space"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "cross-env": "^7.0.3",
-    "dotenv": "^16.0.0",
-    "nodemon": "^2.0.22"
+    "@types/node": "^20.11.19",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "axios": "^1.4.0",
-    "config": "^3.3.9",
-    "cross-env": "^7.0.3",
-    "fluent-ffmpeg": "^2.1.2",
-    "openai": "^4.93.0",
-    "telegraf": "^4.12.2"
+    "axios": "^1.8.4",
+    "dotenv": "^16.5.0",
+    "telegraf": "^4.15.3"
   }
 }
