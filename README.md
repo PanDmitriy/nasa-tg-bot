@@ -25,7 +25,10 @@ Telegram бот для получения информации о космосе
 
 1. Клонируйте репозиторий:
 ```bash
-git clone https://github.com/yourusername/nasa-tg-bot.git
+git clone https://github.com/PanDmitriy/nasa-tg-bot
+```
+
+```bash
 cd nasa-tg-bot
 ```
 
