@@ -1,5 +1,5 @@
 {
-  "name": "gpt-chat-tg-bot",
+  "name": "nasa-tg-bot",
   "version": "1.0.0",
   "description": "Telegram bot for NASA API",
   "main": "dist/app/index.js",

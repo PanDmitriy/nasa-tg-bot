@@ -58,8 +58,8 @@ npm start
 
 ### Docker
 ```bash
-docker build -t gpt-chat-tg-bot .
-docker run -d --env-file .env gpt-chat-tg-bot
+docker build -t nasa-tg-bot .
+docker run -d --env-file .env nasa-tg-bot
 ```
 
 ## Структура проекта
