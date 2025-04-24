@@ -1,15 +1,14 @@
 {
-  "name": "nasa-telegram-bot",
+  "name": "gpt-chat-tg-bot",
   "version": "1.0.0",
   "description": "Telegram bot for NASA API",
-  "main": "dist/main.js",
-  "type": "module",
+  "main": "dist/app/index.js",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development dotenv -e .env -- nodemon --exec tsx src/main.ts",
+    "start": "node dist/app/index.js",
     "build": "tsc",
-    "start": "cross-env NODE_ENV=production dotenv -e .env -- node ./dist/main.js",
-    "clean": "rimraf dist",
-    "prebuild": "npm run clean"
+    "dev": "ts-node-dev --respawn --transpile-only src/app/index.ts",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\""
   },
   "keywords": [
     "nasa",
@@ -20,18 +19,17 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.11.24",
-    "cross-env": "^7.0.3",
-    "dotenv": "^16.0.0",
-    "dotenv-cli": "^8.0.0",
-    "nodemon": "^2.0.22",
-    "rimraf": "^5.0.5",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.19.3",
+    "@types/node": "^20.11.19",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "axios": "^1.4.0",
-    "telegraf": "^4.12.2"
+    "axios": "^1.8.4",
+    "dotenv": "^16.5.0",
+    "telegraf": "^4.15.3"
   }
 }
