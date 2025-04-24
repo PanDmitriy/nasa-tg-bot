@@ -64,10 +64,17 @@ export const formatters = {
   },
 
   formatMarsPhotoMessage(photo: any): string {
-    return `📸 Фотография с марсохода\n\n` +
-      `📅 Дата: ${this.formatDate(new Date(photo.earth_date))}\n` +
-      `📷 Камера: ${photo.camera.full_name}\n` +
-      `🚀 Марсоход: ${photo.rover.name}\n` +
-      `🛰️ Сол: ${photo.sol}`;
+    const date = new Date(photo.earth_date);
+    const formattedDate = this.formatDate(date);
+    
+    return `🚀 *Фотография с марсохода ${photo.rover.name}*\n\n` +
+      `📅 *Дата съемки:* ${formattedDate}\n` +
+      `📷 *Камера:* ${photo.camera.full_name}\n` +
+      `🛰️ *Сол:* ${photo.sol}\n\n` +
+      `ℹ️ *Дополнительная информация:*\n` +
+      `• Статус марсохода: ${photo.rover.status}\n` +
+      `• Дата посадки: ${this.formatDate(new Date(photo.rover.landing_date))}\n` +
+      `• Дата запуска: ${this.formatDate(new Date(photo.rover.launch_date))}\n\n` +
+      `📸 *${photo.currentIndex + 1} из ${photo.totalPhotos} фотографий*`;
   }
 }; 

@@ -1,7 +1,6 @@
 import { Telegraf, Context } from 'telegraf';
-import { code } from 'telegraf/format';
 import { nasa } from './nasa.js';
-import { Command, UserSession, PhotoViewState } from './types/index.js';
+import { UserSession, PhotoViewState } from './types/index.js';
 import { config } from './config.js';
 import { formatters } from './utils/formatters.js';
 import { errorHandler } from './utils/errorHandler.js';
@@ -118,18 +117,31 @@ const createPhotoNavigationKeyboard = (currentIndex: number, totalPhotos: number
   
   // Кнопки навигации
   const navButtons = [];
+  
+  // Кнопка "В начало" показывается, если мы не на первой фотографии
+  if (currentIndex > 0) {
+    navButtons.push({ text: '⏮️ В начало', callback_data: 'first_photo' });
+  }
+  
+  // Кнопка "Назад" показывается, если мы не на первой фотографии
   if (currentIndex > 0) {
     navButtons.push({ text: '⬅️ Назад', callback_data: 'prev_photo' });
   }
-  if (currentIndex < totalPhotos - 1) {
-    navButtons.push({ text: 'Вперед ➡️', callback_data: 'next_photo' });
-  }
-  if (navButtons.length > 0) {
-    keyboard.push(navButtons);
-  }
-
+  
   // Информация о текущей фотографии
   keyboard.push([{ text: `📸 ${currentIndex + 1} из ${totalPhotos}`, callback_data: 'photo_info' }]);
+  
+  // Кнопки "Вперед" и "В конец"
+  const nextButtons = [];
+  if (currentIndex < totalPhotos - 1) {
+    nextButtons.push({ text: 'Вперед ➡️', callback_data: 'next_photo' });
+  }
+  if (currentIndex < totalPhotos - 1) {
+    nextButtons.push({ text: 'В конец ⏭️', callback_data: 'last_photo' });
+  }
+  if (nextButtons.length > 0) {
+    keyboard.push(nextButtons);
+  }
 
   // Кнопка закрытия
   keyboard.push([{ text: '❌ Закрыть', callback_data: 'close_photos' }]);
@@ -138,70 +150,127 @@ const createPhotoNavigationKeyboard = (currentIndex: number, totalPhotos: number
 };
 
 const updatePhotoMessage = async (ctx: BotContext, state: PhotoViewState) => {
+  if (!state.photos || state.photos.length === 0) {
+    await ctx.reply('К сожалению, фотографии не найдены. Попробуйте позже.');
+    return;
+  }
+
   const photo = state.photos[state.currentIndex];
   const keyboard = createPhotoNavigationKeyboard(state.currentIndex, state.photos.length);
   
   try {
+    // Отправляем сообщение о загрузке
+    const loadingMessage = await ctx.reply('🔄 Загрузка фотографии...');
+    
+    // Добавляем дополнительную информацию для форматирования
+    const photoWithInfo = {
+      ...photo,
+      currentIndex: state.currentIndex,
+      totalPhotos: state.photos.length
+    };
+    
     if (state.messageId) {
-      await ctx.telegram.editMessageMedia(
-        ctx.chat!.id,
-        state.messageId,
-        undefined,
-        {
-          type: 'photo',
-          media: photo.img_src,
-          caption: formatters.formatMarsPhotoMessage(photo)
-        },
-        { reply_markup: keyboard }
-      );
+      try {
+        await ctx.telegram.editMessageMedia(
+          ctx.chat!.id,
+          state.messageId,
+          undefined,
+          {
+            type: 'photo',
+            media: photo.img_src,
+            caption: formatters.formatMarsPhotoMessage(photoWithInfo),
+            parse_mode: 'Markdown'
+          },
+          { reply_markup: keyboard }
+        );
+        // Удаляем сообщение о загрузке
+        await ctx.telegram.deleteMessage(ctx.chat!.id, loadingMessage.message_id);
+      } catch (error) {
+        // Если не удалось обновить сообщение, отправляем новое
+        const message = await ctx.replyWithPhoto(photo.img_src, {
+          caption: formatters.formatMarsPhotoMessage(photoWithInfo),
+          parse_mode: 'Markdown',
+          reply_markup: keyboard
+        });
+        state.messageId = message.message_id;
+        // Удаляем сообщение о загрузке
+        await ctx.telegram.deleteMessage(ctx.chat!.id, loadingMessage.message_id);
+      }
     } else {
       const message = await ctx.replyWithPhoto(photo.img_src, {
-        caption: formatters.formatMarsPhotoMessage(photo),
+        caption: formatters.formatMarsPhotoMessage(photoWithInfo),
+        parse_mode: 'Markdown',
         reply_markup: keyboard
       });
       state.messageId = message.message_id;
+      // Удаляем сообщение о загрузке
+      await ctx.telegram.deleteMessage(ctx.chat!.id, loadingMessage.message_id);
     }
   } catch (error) {
     console.error('Error updating photo message:', error);
+    await ctx.reply('Произошла ошибка при загрузке фотографии. Попробуйте еще раз.');
   }
 };
 
 // Обработчик callback-запросов
-bot.action(/prev_photo|next_photo|close_photos|photo_info/, async (ctx) => {
-  if (!ctx.session?.photoViewState) return;
+bot.action(/first_photo|prev_photo|next_photo|last_photo|close_photos|photo_info/, async (ctx) => {
+  if (!ctx.session) {
+    await ctx.answerCbQuery('Сессия не инициализирована. Пожалуйста, начните заново.');
+    return;
+  }
+
+  if (!ctx.session.photoViewState) {
+    await ctx.answerCbQuery('Состояние просмотра фотографий не найдено. Пожалуйста, начните заново.');
+    return;
+  }
   
   const state = ctx.session.photoViewState;
   const callbackData = (ctx.callbackQuery as any).data;
   
-  switch (callbackData) {
-    case 'prev_photo':
-      if (state.currentIndex > 0) {
-        state.currentIndex--;
+  try {
+    switch (callbackData) {
+      case 'first_photo':
+        state.currentIndex = 0;
         await updatePhotoMessage(ctx, state);
-      }
-      break;
-      
-    case 'next_photo':
-      if (state.currentIndex < state.photos.length - 1) {
-        state.currentIndex++;
-        await updatePhotoMessage(ctx, state);
-      }
-      break;
-      
-    case 'close_photos':
-      if (state.messageId) {
-        try {
-          await ctx.telegram.deleteMessage(ctx.chat!.id, state.messageId);
-        } catch (error) {
-          console.error('Error deleting message:', error);
+        break;
+        
+      case 'prev_photo':
+        if (state.currentIndex > 0) {
+          state.currentIndex--;
+          await updatePhotoMessage(ctx, state);
         }
-      }
-      delete ctx.session.photoViewState;
-      break;
+        break;
+        
+      case 'next_photo':
+        if (state.currentIndex < state.photos.length - 1) {
+          state.currentIndex++;
+          await updatePhotoMessage(ctx, state);
+        }
+        break;
+        
+      case 'last_photo':
+        state.currentIndex = state.photos.length - 1;
+        await updatePhotoMessage(ctx, state);
+        break;
+        
+      case 'close_photos':
+        if (state.messageId) {
+          try {
+            await ctx.telegram.deleteMessage(ctx.chat!.id, state.messageId);
+          } catch (error) {
+            console.error('Error deleting message:', error);
+          }
+        }
+        delete ctx.session.photoViewState;
+        break;
 
-    case 'photo_info':
-      // Просто закрываем запрос, ничего не делаем
-      break;
+      case 'photo_info':
+        // Просто закрываем запрос, ничего не делаем
+        break;
+    }
+  } catch (error) {
+    console.error('Error handling photo navigation:', error);
+    await ctx.answerCbQuery('Произошла ошибка при навигации. Попробуйте еще раз.');
   }
   
   await ctx.answerCbQuery();
@@ -211,7 +280,14 @@ bot.action(/prev_photo|next_photo|close_photos|photo_info/, async (ctx) => {
 bot.command('mars', async (ctx) => {
   try {
     const photos = await nasa.getLatestMarsPhotos('curiosity');
-    if (!ctx.session) ctx.session = {};
+    if (!photos || photos.length === 0) {
+      await ctx.reply('К сожалению, не удалось получить фотографии с марсохода. Попробуйте позже.');
+      return;
+    }
+
+    if (!ctx.session) {
+      ctx.session = {};
+    }
     
     ctx.session.photoViewState = {
       rover: 'curiosity',
@@ -221,14 +297,22 @@ bot.command('mars', async (ctx) => {
     
     await updatePhotoMessage(ctx, ctx.session.photoViewState);
   } catch (error) {
-    await ctx.reply(errorHandler.handleError(error));
+    console.error('Error in mars command:', error);
+    await ctx.reply('Произошла ошибка при получении фотографий с марсохода. Попробуйте позже.');
   }
 });
 
 bot.command('curiosity', async (ctx) => {
   try {
     const photos = await nasa.getLatestMarsPhotos('curiosity');
-    if (!ctx.session) ctx.session = {};
+    if (!photos || photos.length === 0) {
+      await ctx.reply('К сожалению, не удалось получить фотографии с марсохода Curiosity. Попробуйте позже.');
+      return;
+    }
+
+    if (!ctx.session) {
+      ctx.session = {};
+    }
     
     ctx.session.photoViewState = {
       rover: 'curiosity',
@@ -238,7 +322,8 @@ bot.command('curiosity', async (ctx) => {
     
     await updatePhotoMessage(ctx, ctx.session.photoViewState);
   } catch (error) {
-    await ctx.reply(errorHandler.handleError(error));
+    console.error('Error in curiosity command:', error);
+    await ctx.reply('Произошла ошибка при получении фотографий с марсохода Curiosity. Попробуйте позже.');
   }
 });
 
