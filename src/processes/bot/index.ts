@@ -1,6 +1,6 @@
 import { Telegraf } from 'telegraf';
 import { config } from '../../app/config';
-import { BotContext } from './types';
+import { BotContext, UserSession } from './types';
 import { handleStart } from './handlers/start';
 import { handleAPOD } from './handlers/apod';
 import { handleISS } from './handlers/iss';
@@ -12,7 +12,7 @@ import { handleHelp } from './handlers/help';
 
 export class Bot {
   private bot: Telegraf<BotContext>;
-  private sessions: Map<number, any>;
+  private sessions: Map<number, UserSession>;
 
   constructor() {
     this.bot = new Telegraf<BotContext>(config.bot.token);

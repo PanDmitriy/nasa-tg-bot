@@ -27,7 +27,7 @@ interface MarsResponse {
 export class MarsApi extends NasaApi {
   async getLatestMarsPhotos(rover: string = 'curiosity', sol?: number, camera?: string): Promise<MarsPhoto[]> {
     try {
-      const params: Record<string, any> = {
+      const params: Record<string, string | number> = {
         page: 1
       };
 

@@ -2,16 +2,25 @@ import { Context } from 'telegraf';
 import { BotContext } from '../types';
 import { IssApi } from '../../../features/iss/api';
 import { config } from '../../../app/config';
-import { createPhotoNavigationKeyboard } from '../../../shared/ui/keyboard';
+
+interface IssPosition {
+  latitude: number;
+  longitude: number;
+}
+
+interface IssData {
+  iss_position: IssPosition;
+  timestamp: number;
+}
 
 const issApi = new IssApi(config.nasa.apiKey);
 
 export async function handleISS(ctx: Context & BotContext) {
   try {
-    const data = await issApi.getIssPosition();
+    const data = await issApi.getIssPosition() as IssData;
     
-    const latitude = parseFloat(data.iss_position.latitude as any);
-    const longitude = parseFloat(data.iss_position.longitude as any);
+    const latitude = data.iss_position.latitude;
+    const longitude = data.iss_position.longitude;
 
     const message = `🛰️ МКС сейчас находится над координатами:\n` +
       `Широта: ${latitude.toFixed(2)}°\n` +

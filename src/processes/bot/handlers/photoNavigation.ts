@@ -2,9 +2,10 @@ import { Context } from 'telegraf';
 import { BotContext } from '../types';
 import { handleMarsNavigation } from './mars';
 import { createPhotoNavigationKeyboard } from '../../../shared/ui/keyboard';
+import { MarsPhoto } from '../../../features/mars/api';
 
 interface PhotoViewState {
-  photos: any[];
+  photos: MarsPhoto[];
   currentIndex: number;
   messageId?: number;
 }
@@ -29,7 +30,7 @@ export async function handlePhotoNavigation(ctx: Context & BotContext) {
     return;
   }
 
-  const state = ctx.session.photoViewState as PhotoViewState;
+  const state = ctx.session.photoViewState;
 
   try {
     switch (callbackQuery.data) {
@@ -97,7 +98,7 @@ async function updatePhotoMessage(ctx: Context & BotContext, state: PhotoViewSta
   }
 }
 
-function formatPhotoMessage(photo: any, currentIndex: number, totalPhotos: number): string {
+function formatPhotoMessage(photo: MarsPhoto, currentIndex: number, totalPhotos: number): string {
   return `📸 Фото с Марса\n\n` +
     `Камера: ${photo.camera.full_name}\n` +
     `Марсоход: ${photo.rover.name}\n` +

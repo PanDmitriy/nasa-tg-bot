@@ -15,7 +15,7 @@ export class NasaApi {
     });
   }
 
-  protected async get<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
+  protected async get<T>(endpoint: string, params: Record<string, string | number> = {}): Promise<T> {
     try {
       const response = await this.client.get<T>(endpoint, { params });
       return response.data;
