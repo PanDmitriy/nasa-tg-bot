@@ -4,9 +4,12 @@ export function createPhotoNavigationKeyboard(currentIndex: number, totalPhotos:
   return {
     inline_keyboard: [
       [
-        { text: '⬅️ Назад', callback_data: 'prev_photo' },
+        { text: '⏮️', callback_data: 'first_photo' },
+        { text: '⬅️', callback_data: 'prev_photo' },
         { text: `${currentIndex + 1}/${totalPhotos}`, callback_data: 'photo_info' },
-        { text: 'Вперед ➡️', callback_data: 'next_photo' }
+        { text: '➡️', callback_data: 'next_photo' },
+        { text: '⏭️', callback_data: 'last_photo' },
+        { text: '❌', callback_data: 'close_photos' }
       ]
     ]
   };

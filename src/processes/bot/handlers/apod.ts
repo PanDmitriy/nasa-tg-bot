@@ -10,21 +10,27 @@ export async function handleAPOD(ctx: Context & BotContext) {
     const apod = await apodApi.getApod();
     
     if (!apod) {
-      await ctx.reply('К сожалению, не удалось получить изображение дня.');
+      await ctx.reply('❌ К сожалению, не удалось получить изображение дня.');
       return;
     }
 
     if (apod.media_type !== 'image') {
-      await ctx.reply(`🌌 ${apod.title}\n\n` +
-        `📅 ${new Date(apod.date).toLocaleString('ru-RU')}\n\n` +
+      const message = `🌌 <b>${apod.title}</b>\n\n` +
+        `📅 <i>${new Date(apod.date).toLocaleString('ru-RU')}</i>\n\n` +
         `${apod.explanation}\n\n` +
-        `🔗 ${apod.url}`);
+        `🔗 <a href="${apod.url}">Ссылка на медиа</a>`;
+
+      await ctx.reply(message, { 
+        parse_mode: 'HTML',
+        link_preview_options: { is_disabled: true }
+      });
       return;
     }
 
-    const caption = `🌌 ${apod.title}\n\n` +
-      `📅 ${new Date(apod.date).toLocaleString('ru-RU')}\n\n` +
-      `${apod.explanation.substring(0, 500)}...`;
+    const caption = `🌌 <b>${apod.title}</b>\n\n` +
+      `📅 <i>${new Date(apod.date).toLocaleString('ru-RU')}</i>\n\n` +
+      `${apod.explanation.substring(0, 500)}...\n\n` +
+      `📸 <i>NASA Astronomy Picture of the Day</i>`;
 
     await ctx.replyWithPhoto(apod.url, {
       caption,
@@ -32,6 +38,6 @@ export async function handleAPOD(ctx: Context & BotContext) {
     });
   } catch (error) {
     console.error('APOD Error:', error);
-    await ctx.reply('Произошла ошибка при получении изображения дня. Попробуйте позже.');
+    await ctx.reply('❌ Произошла ошибка при получении изображения дня. Попробуйте позже.');
   }
-} 
+}

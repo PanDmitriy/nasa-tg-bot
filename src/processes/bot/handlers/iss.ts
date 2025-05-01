@@ -22,10 +22,11 @@ export async function handleISS(ctx: Context & BotContext) {
     const latitude = data.iss_position.latitude;
     const longitude = data.iss_position.longitude;
 
-    const message = `🛰️ МКС сейчас находится над координатами:\n` +
-      `Широта: ${latitude.toFixed(2)}°\n` +
-      `Долгота: ${longitude.toFixed(2)}°\n\n` +
-      `Последнее обновление: ${new Date(data.timestamp * 1000).toLocaleString('ru-RU')}`;
+    const message = `🛰️ <b>Международная космическая станция</b>\n\n` +
+      `📍 <b>Текущие координаты:</b>\n` +
+      `   • Широта: ${latitude.toFixed(2)}°\n` +
+      `   • Долгота: ${longitude.toFixed(2)}°\n\n` +
+      `🕒 <i>Последнее обновление: ${new Date(data.timestamp * 1000).toLocaleString('ru-RU')}</i>`;
 
     await ctx.reply(message, {
       reply_markup: {
@@ -35,7 +36,8 @@ export async function handleISS(ctx: Context & BotContext) {
             { text: '📍 Яндекс.Карты', url: `https://yandex.ru/maps/?text=${latitude},${longitude}` }
           ]
         ]
-      }
+      },
+      parse_mode: 'HTML'
     });
   } catch (error) {
     console.error('ISS Error:', error);

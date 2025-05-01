@@ -9,21 +9,29 @@ const marsApi = new MarsApi(process.env.NASA_API_KEY || '');
 interface MarsSession {
   marsPhotos?: MarsPhoto[];
   currentPhotoIndex?: number;
+  photoViewState?: {
+    photos: MarsPhoto[];
+    currentIndex: number;
+    messageId?: number;
+  };
 }
 
 async function sendMarsPhoto(ctx: Context & BotContext & { session?: MarsSession }, index: number) {
-  if (!ctx.session?.marsPhotos) return;
+  if (!ctx.session?.photoViewState) return;
 
-  const photos = ctx.session.marsPhotos;
+  const photos = ctx.session.photoViewState.photos;
   const photo = photos[index];
 
-  await ctx.replyWithPhoto(photo.img_src, {
+  const message = await ctx.replyWithPhoto(photo.img_src, {
     caption: `🚀 Фотография с марсохода ${photo.rover.name}\n` +
       `📅 Дата: ${new Date(photo.earth_date).toLocaleString('ru-RU')}\n` +
       `📷 Камера: ${photo.camera.full_name}\n` +
       `🌞 Сол: ${photo.sol}`,
     reply_markup: createPhotoNavigationKeyboard(index, photos.length)
   });
+
+  ctx.session.photoViewState.messageId = message.message_id;
+  ctx.session.photoViewState.currentIndex = index;
 }
 
 export async function handleMars(ctx: Context & BotContext): Promise<void> {
@@ -53,6 +61,10 @@ export async function handleMars(ctx: Context & BotContext): Promise<void> {
     }
     ctx.session.marsPhotos = photos;
     ctx.session.currentPhotoIndex = 0;
+    ctx.session.photoViewState = {
+      photos: photos,
+      currentIndex: 0
+    };
 
     // Отправляем первую фотографию
     await sendMarsPhoto(ctx, 0);

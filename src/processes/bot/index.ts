@@ -46,7 +46,6 @@ export class Bot {
     this.bot.command('help', handleHelp);
 
     this.bot.action(/first_photo|prev_photo|next_photo|last_photo|close_photos|photo_info/, handlePhotoNavigation);
-    this.bot.action(/prev_photo|next_photo|photo_info/, handleMarsNavigation);
   }
 
   public async start() {

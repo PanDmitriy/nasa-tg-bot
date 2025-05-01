@@ -1,6 +1,5 @@
 import { Context } from 'telegraf';
 import { BotContext } from '../types';
-import { handleMarsNavigation } from './mars';
 import { createPhotoNavigationKeyboard } from '../../../shared/ui/keyboard';
 import { MarsPhoto } from '../../../features/mars/api';
 
@@ -13,12 +12,6 @@ interface PhotoViewState {
 export async function handlePhotoNavigation(ctx: Context & BotContext) {
   const callbackQuery = ctx.callbackQuery;
   if (!callbackQuery || !('data' in callbackQuery)) return;
-
-  // Обработка навигации по фотографиям Марса
-  if (callbackQuery.data.startsWith('prev_photo') || callbackQuery.data.startsWith('next_photo')) {
-    await handleMarsNavigation(ctx);
-    return;
-  }
 
   if (!ctx.session) {
     await ctx.answerCbQuery('Сессия не инициализирована. Пожалуйста, начните заново.');
@@ -36,12 +29,18 @@ export async function handlePhotoNavigation(ctx: Context & BotContext) {
     switch (callbackQuery.data) {
       case 'first_photo':
         state.currentIndex = 0;
-        await updatePhotoMessage(ctx, state);
         break;
 
       case 'last_photo':
         state.currentIndex = state.photos.length - 1;
-        await updatePhotoMessage(ctx, state);
+        break;
+
+      case 'prev_photo':
+        state.currentIndex = Math.max(0, state.currentIndex - 1);
+        break;
+
+      case 'next_photo':
+        state.currentIndex = Math.min(state.photos.length - 1, state.currentIndex + 1);
         break;
 
       case 'close_photos':
@@ -49,12 +48,16 @@ export async function handlePhotoNavigation(ctx: Context & BotContext) {
           await ctx.telegram.deleteMessage(ctx.chat!.id, state.messageId);
         }
         ctx.session.photoViewState = undefined;
-        break;
+        await ctx.answerCbQuery();
+        return;
 
       case 'photo_info':
         await ctx.answerCbQuery(`Фото ${state.currentIndex + 1} из ${state.photos.length}`);
-        break;
+        return;
     }
+
+    await updatePhotoMessage(ctx, state);
+    await ctx.answerCbQuery();
   } catch (error) {
     console.error('Error handling photo navigation:', error);
     await ctx.answerCbQuery('Произошла ошибка при обработке действия');
@@ -99,10 +102,10 @@ async function updatePhotoMessage(ctx: Context & BotContext, state: PhotoViewSta
 }
 
 function formatPhotoMessage(photo: MarsPhoto, currentIndex: number, totalPhotos: number): string {
-  return `📸 Фото с Марса\n\n` +
-    `Камера: ${photo.camera.full_name}\n` +
-    `Марсоход: ${photo.rover.name}\n` +
-    `Дата: ${new Date(photo.earth_date).toLocaleString('ru-RU')}\n` +
-    `Сол: ${photo.sol}\n\n` +
-    `Фото ${currentIndex + 1} из ${totalPhotos}`;
+  return `📸 <b>Фото с Марса</b>\n\n` +
+    `📷 <b>Камера:</b> ${photo.camera.full_name}\n` +
+    `🤖 <b>Марсоход:</b> ${photo.rover.name}\n` +
+    `📅 <b>Дата:</b> ${new Date(photo.earth_date).toLocaleString('ru-RU')}\n` +
+    `☀️ <b>Сол:</b> ${photo.sol}\n\n` +
+    `📌 <i>Фото ${currentIndex + 1} из ${totalPhotos}</i>`;
 } 
