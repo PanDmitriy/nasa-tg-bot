@@ -8,10 +8,10 @@ export async function handleEarth(ctx: Context & BotContext) {
   try {
     await ctx.sendChatAction('upload_photo');
     const loading = await ctx.reply('⏳ Загружаю снимок…');
-    const image = await earthApi.getLatestEarthImage('natural');
+    const image = await earthApi.getLatestEarthImageWithFallback('natural');
     
     await ctx.replyWithPhoto(image.image, {
-      caption: `🌍 <b>Снимок Земли</b>\n\n` +
+      caption: `🌍 <b>Снимок Земли${image.isFallback ? ' — последняя доступная дата' : ''}</b>\n\n` +
         `📅 <i>${new Date(image.date).toLocaleString('ru-RU')}</i>\n\n` +
         `${image.caption}\n\n` +
         `📸 <i>NASA Earth Polychromatic Imaging Camera (EPIC)</i>`,
@@ -56,9 +56,9 @@ export async function handleEarthType(ctx: Context & BotContext) {
   await ctx.sendChatAction('upload_photo');
   const loading = await ctx.reply('⏳ Загружаю снимок…');
   try {
-    const image = await earthApi.getLatestEarthImage(type as 'natural' | 'enhanced');
+    const image = await earthApi.getLatestEarthImageWithFallback(type as 'natural' | 'enhanced');
     await ctx.replyWithPhoto(image.image, {
-      caption: `🌍 <b>Снимок Земли (${type === 'natural' ? 'Natural' : 'Enhanced'})</b>\n\n` +
+      caption: `🌍 <b>Снимок Земли (${type === 'natural' ? 'Natural' : 'Enhanced'})${image.isFallback ? ' — последняя доступная дата' : ''}</b>\n\n` +
         `📅 <i>${new Date(image.date).toLocaleString('ru-RU')}</i>\n\n` +
         `${image.caption}\n\n` +
         `📸 <i>NASA EPIC</i>`,
