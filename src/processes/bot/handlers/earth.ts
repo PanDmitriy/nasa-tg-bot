@@ -1,4 +1,4 @@
-import { Context } from 'telegraf';
+import { Context, Markup } from 'telegraf';
 import { BotContext } from '../types';
 import { EarthApi } from '../../../features/earth/api';
 
@@ -22,13 +22,25 @@ export async function handleEarth(ctx: Context & BotContext) {
     console.error('Earth Error:', error);
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.includes('NASA API Error: 503') || msg.includes('NASA API Error: 502') || msg.includes('NASA API Error: 504')) {
-      await ctx.reply('⚠️ Сервис NASA EPIC временно недоступен (5xx). Попробуйте позже.');
+      await ctx.reply('⚠️ Сервис NASA EPIC временно недоступен (5xx). Попробуйте позже.', Markup.inlineKeyboard([
+        Markup.button.callback('🔄 Повторить', 'earth_retry')
+      ]));
       return;
     }
     if (msg.includes('NASA API Error: 429')) {
-      await ctx.reply('⚠️ Превышен лимит запросов NASA (429). Подождите немного и повторите.');
+      await ctx.reply('⚠️ Превышен лимит запросов NASA (429). Подождите немного и повторите.', Markup.inlineKeyboard([
+        Markup.button.callback('🔄 Повторить', 'earth_retry')
+      ]));
       return;
     }
-    await ctx.reply('❌ Произошла ошибка при получении снимка Земли. Попробуйте позже.');
+    await ctx.reply('❌ Произошла ошибка при получении снимка Земли. Попробуйте позже.', Markup.inlineKeyboard([
+      Markup.button.callback('🔄 Повторить', 'earth_retry')
+    ]));
   }
 } 
+
+export async function handleEarthRetry(ctx: Context & BotContext) {
+  try { await ctx.answerCbQuery(); } catch {}
+  try { await ctx.deleteMessage(); } catch {}
+  return handleEarth(ctx);
+}
