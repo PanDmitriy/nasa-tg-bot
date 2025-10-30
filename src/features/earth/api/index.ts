@@ -14,6 +14,9 @@ interface EarthImageEx extends EarthImage {
 }
 
 export class EarthApi extends NasaApi {
+  private latestCache: Map<string, { image: EarthImageEx; expiresAt: number }> = new Map();
+  private static readonly DEFAULT_TTL_MS = 2 * 60 * 1000;
+
   constructor() {
     super('', 'https://epic.gsfc.nasa.gov');
   }
@@ -43,18 +46,27 @@ export class EarthApi extends NasaApi {
   }
 
   async getLatestEarthImageWithFallback(type: 'natural' | 'enhanced' = 'natural'): Promise<EarthImageEx> {
+    const cacheKey = `latest:${type}`;
+    const now = Date.now();
+    const cached = this.latestCache.get(cacheKey);
+    if (cached && cached.expiresAt > now) {
+      return cached.image;
+    }
     try {
       const img = await this.getLatestEarthImage(type);
-      return { ...img, isFallback: false, type };
+      const enriched = { ...img, isFallback: false, type } as EarthImageEx;
+      this.latestCache.set(cacheKey, { image: enriched, expiresAt: now + EarthApi.DEFAULT_TTL_MS });
+      return enriched;
     } catch {
-      // try fallback to last available date
       const dates = await this.getAvailableDates(type);
       if (!dates || dates.length === 0) {
         throw new Error('Нет доступных дат EPIC');
       }
       const lastDate = dates[dates.length - 1];
       const img = await this.getImageByDate(type, lastDate);
-      return { ...img, isFallback: true, type };
+      const enriched = { ...img, isFallback: true, type } as EarthImageEx;
+      this.latestCache.set(cacheKey, { image: enriched, expiresAt: now + EarthApi.DEFAULT_TTL_MS });
+      return enriched;
     }
   }
 } 
