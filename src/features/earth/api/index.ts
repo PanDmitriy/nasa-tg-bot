@@ -9,8 +9,12 @@ interface EarthImage {
 }
 
 export class EarthApi extends NasaApi {
+  constructor() {
+    super('', 'https://epic.gsfc.nasa.gov');
+  }
+
   async getLatestEarthImage(): Promise<EarthImage> {
-    const data = await this.get<EarthImage[]>('/EPIC/api/natural');
+    const data = await this.get<EarthImage[]>('/api/natural');
     const latest = data[0];
     
     return {
