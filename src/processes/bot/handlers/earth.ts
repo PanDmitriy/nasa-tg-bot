@@ -6,6 +6,8 @@ const earthApi = new EarthApi();
 
 export async function handleEarth(ctx: Context & BotContext) {
   try {
+    await ctx.sendChatAction('upload_photo');
+    const loading = await ctx.reply('⏳ Загружаю снимок…');
     const image = await earthApi.getLatestEarthImage();
     
     await ctx.replyWithPhoto(image.image, {
@@ -15,6 +17,7 @@ export async function handleEarth(ctx: Context & BotContext) {
         `📸 <i>NASA Earth Polychromatic Imaging Camera (EPIC)</i>`,
       parse_mode: 'HTML'
     });
+    try { await ctx.deleteMessage(loading.message_id); } catch {}
   } catch (error) {
     console.error('Earth Error:', error);
     const msg = error instanceof Error ? error.message : String(error);
