@@ -3,7 +3,7 @@ import { config } from '../../app/config';
 import { BotContext, UserSession } from './types';
 import { handleStart } from './handlers/start';
 import { handleAPOD } from './handlers/apod';
-import { handleEarth } from './handlers/earth';
+import { handleEarth, handleEarthRetry, handleEarthType } from './handlers/earth';
 import { handleAsteroids } from './handlers/asteroids';
 import { handleMars, handleMarsNavigation } from './handlers/mars';
 import { handlePhotoNavigation } from './handlers/photoNavigation';
@@ -44,6 +44,9 @@ export class Bot {
     this.bot.command('help', handleHelp);
 
     this.bot.action(/first_photo|prev_photo|next_photo|last_photo|close_photos|photo_info/, handlePhotoNavigation);
+    this.bot.action('earth_retry', handleEarthRetry);
+    this.bot.action('earth_type_natural', handleEarthType);
+    this.bot.action('earth_type_enhanced', handleEarthType);
   }
 
   public async start() {
