@@ -4,12 +4,6 @@ export interface Coordinates {
   altitude?: number;
 }
 
-export interface ISSLocation extends Coordinates {
-  timestamp: number;
-  velocity: number;
-  visibility: string;
-}
-
 export interface AsteroidLocation {
   name: string;
   coordinates: Coordinates;
