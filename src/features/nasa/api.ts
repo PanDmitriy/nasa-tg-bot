@@ -8,12 +8,6 @@ interface APODResponse {
   copyright?: string;
 }
 
-interface ISSLocation {
-  latitude: number;
-  longitude: number;
-  timestamp: number;
-}
-
 interface EarthImage {
   date: string;
   image: string;
@@ -25,14 +19,6 @@ interface Asteroid {
   distance: number;
   velocity: number;
   is_potentially_hazardous: boolean;
-}
-
-interface ISSResponse {
-  iss_position: {
-    latitude: string;
-    longitude: string;
-  };
-  timestamp: number;
 }
 
 interface EarthResponse {
@@ -72,19 +58,6 @@ export class NasaAPI {
       throw ErrorHandler.createError('Не удалось получить фото дня', 'APOD_ERROR');
     }
     return response.json() as Promise<APODResponse>;
-  }
-
-  static async getISSLocation(): Promise<ISSLocation> {
-    const response = await fetch(`${this.baseUrl}/iss-now.json?api_key=${this.apiKey}`);
-    if (!response.ok) {
-      throw ErrorHandler.createError('Не удалось получить данные о МКС', 'ISS_ERROR');
-    }
-    const data = await response.json() as ISSResponse;
-    return {
-      latitude: parseFloat(data.iss_position.latitude),
-      longitude: parseFloat(data.iss_position.longitude),
-      timestamp: data.timestamp
-    };
   }
 
   static async getEarthImage(): Promise<EarthImage> {

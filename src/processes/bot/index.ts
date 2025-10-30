@@ -3,7 +3,6 @@ import { config } from '../../app/config';
 import { BotContext, UserSession } from './types';
 import { handleStart } from './handlers/start';
 import { handleAPOD } from './handlers/apod';
-import { handleISS } from './handlers/iss';
 import { handleEarth } from './handlers/earth';
 import { handleAsteroids } from './handlers/asteroids';
 import { handleMars, handleMarsNavigation } from './handlers/mars';
@@ -39,7 +38,6 @@ export class Bot {
 
     this.bot.command('start', handleStart);
     this.bot.command('apod', handleAPOD);
-    this.bot.command('iss', handleISS);
     this.bot.command('earth', handleEarth);
     this.bot.command('asteroids', handleAsteroids);
     this.bot.command('mars', handleMars);

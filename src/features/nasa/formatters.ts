@@ -1,17 +1,5 @@
 import { config } from '../../app/config';
 
-interface ISSLocation {
-  latitude: number;
-  longitude: number;
-  timestamp: number;
-  velocity?: number;
-  altitude?: number;
-  visibility?: string;
-  footprint?: number;
-  solar_lat?: number;
-  solar_lon?: number;
-}
-
 interface EPICImage {
   date: string;
   image: string;
@@ -62,23 +50,6 @@ export const formatters = {
       timeZone: config.timezone,
       ...config.dateFormat
     });
-  },
-
-  formatISSMessage(data: ISSLocation): string {
-    return `🛰️ *Международная космическая станция*\n\n` +
-      `🌍 *Координаты:*\n` +
-      `Широта: ${data.latitude.toFixed(4)}°\n` +
-      `Долгота: ${data.longitude.toFixed(4)}°\n\n` +
-      `📊 *Параметры орбиты:*\n` +
-      (data.velocity ? `Скорость: ${(data.velocity * 3.6).toFixed(2)} км/ч\n` : '') +
-      (data.altitude ? `Высота: ${data.altitude.toFixed(2)} км\n` : '') +
-      (data.visibility ? `Видимость: ${data.visibility}\n` : '') +
-      (data.footprint ? `Зона покрытия: ${data.footprint.toFixed(2)} км\n` : '') +
-      (data.solar_lat && data.solar_lon ? `\n☀️ *Солнечная позиция:*\n` +
-        `Широта: ${data.solar_lat.toFixed(2)}°\n` +
-        `Долгота: ${data.solar_lon.toFixed(2)}°\n` : '') +
-      `\n🕒 *Время обновления:*\n` +
-      `${this.formatDate(new Date(data.timestamp * 1000))}`;
   },
 
   formatEarthMessage(image: EPICImage): string {

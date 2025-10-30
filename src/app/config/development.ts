@@ -6,7 +6,6 @@ export const developmentConfig: Config = {
     commands: [
       { command: 'start', description: 'Начать работу с ботом' },
       { command: 'apod', description: 'Фото дня от NASA' },
-      { command: 'iss', description: 'Местоположение МКС' },
       { command: 'earth', description: 'Снимок Земли' },
       { command: 'asteroids', description: 'Информация об астероидах' },
       { command: 'mars', description: 'Фотографии с Марса' }
