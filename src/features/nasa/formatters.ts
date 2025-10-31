@@ -28,22 +28,6 @@ interface Asteroid {
   nasa_jpl_url: string;
 }
 
-interface MarsPhoto {
-  earth_date: string;
-  camera: {
-    full_name: string;
-  };
-  rover: {
-    name: string;
-    status: string;
-    landing_date: string;
-    launch_date: string;
-  };
-  sol: number;
-  currentIndex?: number;
-  totalPhotos?: number;
-}
-
 export const formatters = {
   formatDate(date: Date): string {
     return date.toLocaleString('ru-RU', {
@@ -87,22 +71,5 @@ export const formatters = {
     }
 
     return message;
-  },
-
-  formatMarsPhotoMessage(photo: MarsPhoto): string {
-    const date = new Date(photo.earth_date);
-    const formattedDate = this.formatDate(date);
-    
-    return `🚀 *Фотография с марсохода ${photo.rover.name}*\n\n` +
-      `📅 *Дата съемки:* ${formattedDate}\n` +
-      `📷 *Камера:* ${photo.camera.full_name}\n` +
-      `🛰️ *Сол:* ${photo.sol}\n\n` +
-      `ℹ️ *Дополнительная информация:*\n` +
-      `• Статус марсохода: ${photo.rover.status}\n` +
-      `• Дата посадки: ${this.formatDate(new Date(photo.rover.landing_date))}\n` +
-      `• Дата запуска: ${this.formatDate(new Date(photo.rover.launch_date))}\n\n` +
-      (photo.currentIndex !== undefined && photo.totalPhotos !== undefined 
-        ? `📸 *${photo.currentIndex + 1} из ${photo.totalPhotos} фотографий*`
-        : '');
   }
 }; 
