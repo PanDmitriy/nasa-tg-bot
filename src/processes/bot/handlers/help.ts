@@ -7,7 +7,6 @@ export async function handleHelp(ctx: Context & BotContext): Promise<void> {
 
 <b>Основные команды:</b>
 • /earth - Получить фотографию Земли
-• /iss - Узнать текущее положение МКС
 • /asteroids - Получить информацию о ближайших астероидах
 • /apod - Получить фотографию дня от NASA
 • /help - Показать это сообщение
