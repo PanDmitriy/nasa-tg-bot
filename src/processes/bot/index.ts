@@ -5,8 +5,7 @@ import { handleStart } from './handlers/start';
 import { handleAPOD } from './handlers/apod';
 import { handleEarth, handleEarthRetry, handleEarthType } from './handlers/earth';
 import { handleAsteroids } from './handlers/asteroids';
-import { handleMars, handleMarsNavigation } from './handlers/mars';
-import { handlePhotoNavigation } from './handlers/photoNavigation';
+// removed Mars feature: handlers are no longer used
 import { handleHelp } from './handlers/help';
 
 export class Bot {
@@ -40,10 +39,8 @@ export class Bot {
     this.bot.command('apod', handleAPOD);
     this.bot.command('earth', handleEarth);
     this.bot.command('asteroids', handleAsteroids);
-    this.bot.command('mars', handleMars);
     this.bot.command('help', handleHelp);
 
-    this.bot.action(/first_photo|prev_photo|next_photo|last_photo|close_photos|photo_info/, handlePhotoNavigation);
     this.bot.action('earth_retry', handleEarthRetry);
     this.bot.action('earth_type_natural', handleEarthType);
     this.bot.action('earth_type_enhanced', handleEarthType);

@@ -8,7 +8,7 @@ export const developmentConfig: Config = {
       { command: 'apod', description: 'Фото дня от NASA' },
       { command: 'earth', description: 'Снимок Земли' },
       { command: 'asteroids', description: 'Информация об астероидах' },
-      { command: 'mars', description: 'Фотографии с Марса' }
+      
     ]
   },
   nasa: {
