@@ -9,7 +9,8 @@ export const productionConfig: Config = {
       { command: 'earth', description: 'Снимок Земли' },
       { command: 'asteroids', description: 'Информация об астероидах' },
       { command: 'images', description: 'Галерея изображений NASA' },
-      
+      { command: 'donki', description: 'Космическая погода (DONKI)' },
+      { command: 'help', description: 'Помощь' },
     ]
   },
   nasa: {
