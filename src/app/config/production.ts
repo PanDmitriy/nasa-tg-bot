@@ -8,6 +8,7 @@ export const productionConfig: Config = {
       { command: 'apod', description: 'Фото дня от NASA' },
       { command: 'earth', description: 'Снимок Земли' },
       { command: 'asteroids', description: 'Информация об астероидах' },
+      { command: 'images', description: 'Галерея изображений NASA' },
       
     ]
   },

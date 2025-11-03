@@ -7,6 +7,15 @@ import { handleEarth, handleEarthRetry, handleEarthType } from './handlers/earth
 import { handleAsteroids } from './handlers/asteroids';
 // removed Mars feature: handlers are no longer used
 import { handleHelp } from './handlers/help';
+import {
+  handleImages,
+  handleImageTopic,
+  handleImagePrev,
+  handleImageNext,
+  handleImagesMenu,
+  handleImagesCustomSearch,
+  handleImageInfo,
+} from './handlers/images';
 
 export class Bot {
   private bot: Telegraf<BotContext>;
@@ -39,11 +48,21 @@ export class Bot {
     this.bot.command('apod', handleAPOD);
     this.bot.command('earth', handleEarth);
     this.bot.command('asteroids', handleAsteroids);
+    this.bot.command('images', handleImages);
     this.bot.command('help', handleHelp);
 
+    // Earth actions
     this.bot.action('earth_retry', handleEarthRetry);
     this.bot.action('earth_type_natural', handleEarthType);
     this.bot.action('earth_type_enhanced', handleEarthType);
+
+    // Images actions
+    this.bot.action(/^images_topic_/, handleImageTopic);
+    this.bot.action('images_prev', handleImagePrev);
+    this.bot.action('images_next', handleImageNext);
+    this.bot.action('images_menu', handleImagesMenu);
+    this.bot.action('images_custom_search', handleImagesCustomSearch);
+    this.bot.action('images_info', handleImageInfo);
   }
 
   public async start() {
