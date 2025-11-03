@@ -11,7 +11,8 @@ interface ApodResponse {
 }
 
 export class ApodApi extends NasaApi {
-  async getApod(): Promise<ApodResponse> {
-    return this.get<ApodResponse>('/planetary/apod');
+  async getApod(date?: string): Promise<ApodResponse> {
+    const params = date ? { date } : {};
+    return this.get<ApodResponse>('/planetary/apod', params);
   }
 } 
