@@ -5,6 +5,29 @@ import { config } from '../../../app/config';
 
 const apodApi = new ApodApi(config.nasa.apiKey);
 
+/**
+ * Генерирует случайную дату между начальной датой APOD и конечной датой
+ * @returns Дата в формате YYYY-MM-DD
+ */
+function getRandomApodDate(): string {
+  // Первая доступная дата APOD - 16 июня 1995
+  const startDate = new Date('1995-06-16');
+  // Конечная дата - 1 октября 2025
+  const endDate = new Date('2025-10-01');
+  
+  // Генерируем случайное количество дней между датами
+  const timeDiff = endDate.getTime() - startDate.getTime();
+  const randomTime = Math.random() * timeDiff;
+  const randomDate = new Date(startDate.getTime() + randomTime);
+  
+  // Форматируем дату в YYYY-MM-DD
+  const year = randomDate.getFullYear();
+  const month = String(randomDate.getMonth() + 1).padStart(2, '0');
+  const day = String(randomDate.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+}
+
 export async function handleAPOD(ctx: Context & BotContext) {
   // Показываем индикатор загрузки и сообщение пользователю
   await ctx.sendChatAction('upload_photo');
@@ -12,18 +35,21 @@ export async function handleAPOD(ctx: Context & BotContext) {
   
   try {
     // Отправляем сообщение о загрузке
-    loadingMessage = await ctx.reply('⏳ Загружаю изображение дня...');
+    loadingMessage = await ctx.reply('⏳ Загружаю случайное изображение дня...');
     
-    // Создаем таймаут для запроса (35 секунд, чуть больше чем таймаут axios)
+    // Генерируем случайную дату для запроса APOD
+    const randomDate = getRandomApodDate();
+    
+    // Создаем таймаут для запроса (15 секунд, чуть больше чем таймаут axios)
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
         reject(new Error('Request timeout: Превышено время ожидания ответа от NASA API'));
-      }, 35000);
+      }, 15000);
     });
     
     // Объединяем запрос с таймаутом
     const apod = await Promise.race([
-      apodApi.getApod(),
+      apodApi.getApod(randomDate),
       timeoutPromise
     ]);
     
