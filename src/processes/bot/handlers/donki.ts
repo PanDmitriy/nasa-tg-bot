@@ -100,10 +100,21 @@ function createKeyboardWithModeToggle(
   };
 
   if (items.length > 1) {
-    keyboard.inline_keyboard.push([
-      { text: '⬅️ Предыдущее', callback_data: `donki_${type}_item_${Math.max(0, currentIndex - 1)}` },
-      { text: '➡️ Следующее', callback_data: `donki_${type}_item_${Math.min(items.length - 1, currentIndex + 1)}` },
-    ]);
+    const buttons = [];
+    
+    // Кнопка "Предыдущее" показывается, если не на первом элементе
+    if (currentIndex > 0) {
+      buttons.push({ text: '⬅️ Предыдущее', callback_data: `donki_${type}_item_${currentIndex - 1}` });
+    }
+    
+    // Кнопка "Следующее" показывается, если не на последнем элементе
+    if (currentIndex < items.length - 1) {
+      buttons.push({ text: '➡️ Следующее', callback_data: `donki_${type}_item_${currentIndex + 1}` });
+    }
+    
+    if (buttons.length > 0) {
+      keyboard.inline_keyboard.push(buttons);
+    }
   }
 
   keyboard.inline_keyboard.push([
@@ -585,10 +596,17 @@ export async function handleDonkiItemNavigation(ctx: Context & BotContext, data:
       return;
     }
 
-    const { items } = ctx.session.donkiData;
+    const { items, currentIndex } = ctx.session.donkiData;
 
+    // Проверка границ
     if (targetIndex < 0 || targetIndex >= items.length) {
       await ctx.answerCbQuery('Достигнут конец списка');
+      return;
+    }
+
+    // Если индекс не изменился, не обновляем сообщение
+    if (targetIndex === currentIndex) {
+      await ctx.answerCbQuery('Вы уже на этом элементе');
       return;
     }
 
@@ -605,7 +623,12 @@ export async function handleDonkiItemNavigation(ctx: Context & BotContext, data:
     });
 
     await ctx.answerCbQuery();
-  } catch (error) {
+  } catch (error: any) {
+    // Обработка ошибки "message is not modified"
+    if (error?.response?.error_code === 400 && error?.response?.description?.includes('message is not modified')) {
+      await ctx.answerCbQuery('Вы уже на этом элементе');
+      return;
+    }
     console.error('DONKI Navigation Error:', error);
     await ctx.answerCbQuery('Ошибка навигации');
   }
