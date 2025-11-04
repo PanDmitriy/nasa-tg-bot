@@ -99,45 +99,59 @@ export class Bot {
 
     // DONKI date selections
     this.bot.action(/^donki_cme_(today|week|month|7days)$/, async (ctx) => {
-      const period = ctx.callbackQuery.data.split('_').pop();
-      const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
-      await handleDonkiCMEData(ctx as BotContext, days);
+      if ('data' in ctx.callbackQuery) {
+        const period = ctx.callbackQuery.data.split('_').pop();
+        const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
+        await handleDonkiCMEData(ctx as BotContext, days);
+      }
     });
     
     this.bot.action(/^donki_sep_(today|week|month|7days)$/, async (ctx) => {
-      const period = ctx.callbackQuery.data.split('_').pop();
-      const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
-      await handleDonkiSEPData(ctx as BotContext, days);
+      if ('data' in ctx.callbackQuery) {
+        const period = ctx.callbackQuery.data.split('_').pop();
+        const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
+        await handleDonkiSEPData(ctx as BotContext, days);
+      }
     });
     
     this.bot.action(/^donki_gst_(today|week|month|7days)$/, async (ctx) => {
-      const period = ctx.callbackQuery.data.split('_').pop();
-      const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
-      await handleDonkiGSTData(ctx as BotContext, days);
+      if ('data' in ctx.callbackQuery) {
+        const period = ctx.callbackQuery.data.split('_').pop();
+        const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
+        await handleDonkiGSTData(ctx as BotContext, days);
+      }
     });
     
     this.bot.action(/^donki_ips_(today|week|month|7days)$/, async (ctx) => {
-      const period = ctx.callbackQuery.data.split('_').pop();
-      const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
-      await handleDonkiIPSData(ctx as BotContext, days);
+      if ('data' in ctx.callbackQuery) {
+        const period = ctx.callbackQuery.data.split('_').pop();
+        const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
+        await handleDonkiIPSData(ctx as BotContext, days);
+      }
     });
 
     // DONKI flares period selection
     this.bot.action(/^donki_flares_(today|week|month|7days)$/, async (ctx) => {
-      const period = ctx.callbackQuery.data.split('_').pop();
-      const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
-      await handleDonkiFlaresPeriod(ctx as BotContext, days);
+      if ('data' in ctx.callbackQuery) {
+        const period = ctx.callbackQuery.data.split('_').pop();
+        const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
+        await handleDonkiFlaresPeriod(ctx as BotContext, days);
+      }
     });
 
     // DONKI flare class selection
     this.bot.action(/^donki_flares_class_/, async (ctx) => {
-      const classType = ctx.callbackQuery.data.split('_').pop() || 'ALL';
-      await handleDonkiFlaresData(ctx as BotContext, classType);
+      if ('data' in ctx.callbackQuery) {
+        const classType = ctx.callbackQuery.data.split('_').pop() || 'ALL';
+        await handleDonkiFlaresData(ctx as BotContext, classType);
+      }
     });
 
     // DONKI item navigation
     this.bot.action(/^donki_\w+_item_\d+$/, async (ctx) => {
-      await handleDonkiItemNavigation(ctx as BotContext, ctx.callbackQuery.data);
+      if ('data' in ctx.callbackQuery) {
+        await handleDonkiItemNavigation(ctx as BotContext, ctx.callbackQuery.data);
+      }
     });
 
     // DONKI mode toggle

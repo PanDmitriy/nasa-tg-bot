@@ -176,6 +176,7 @@ function formatDonkiItem(
 
 export async function handleDonki(ctx: Context & BotContext) {
   try {
+    if (!ctx.session) ctx.session = {};
     const isSimpleMode = ctx.session.donkiSimpleMode ?? false;
     const modeText = isSimpleMode ? '💬 Простой режим' : '📊 Подробный режим';
     
@@ -217,6 +218,7 @@ ${modeText} (можно переключить после выбора собы�
 
 export async function handleDonkiMenu(ctx: Context & BotContext) {
   try {
+    if (!ctx.session) ctx.session = {};
     const isSimpleMode = ctx.session.donkiSimpleMode ?? false;
     const modeText = isSimpleMode ? '💬 Простой режим' : '📊 Подробный режим';
     
@@ -257,6 +259,7 @@ export async function handleDonkiCME(ctx: Context & BotContext) {
 
 export async function handleDonkiCMEData(ctx: Context & BotContext, days: number) {
   try {
+    if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка CME...');
     const { startDate, endDate } = getDateRange(days);
     const cmes = await donkiApi.getCMEs(startDate, endDate);
@@ -306,6 +309,7 @@ export async function handleDonkiFlares(ctx: Context & BotContext) {
 
 export async function handleDonkiFlaresPeriod(ctx: Context & BotContext, days: number) {
   try {
+    if (!ctx.session) ctx.session = {};
     await ctx.editMessageText('☀️ Выберите класс вспышек:', {
       reply_markup: createFlareClassMenu(),
     });
@@ -316,6 +320,7 @@ export async function handleDonkiFlaresPeriod(ctx: Context & BotContext, days: n
 }
 
 export async function handleDonkiFlaresData(ctx: Context & BotContext, classType: string = 'ALL', days?: number) {
+  if (!ctx.session) ctx.session = {};
   const period = days || ctx.session.donkiFlaresPeriod || 7;
   try {
     await ctx.answerCbQuery('Загрузка вспышек...');
@@ -367,6 +372,7 @@ export async function handleDonkiSEP(ctx: Context & BotContext) {
 
 export async function handleDonkiSEPData(ctx: Context & BotContext, days: number) {
   try {
+    if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка SEP...');
     const { startDate, endDate } = getDateRange(days);
     const seps = await donkiApi.getSEPs(startDate, endDate);
@@ -416,6 +422,7 @@ export async function handleDonkiGST(ctx: Context & BotContext) {
 
 export async function handleDonkiGSTData(ctx: Context & BotContext, days: number) {
   try {
+    if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка геобурь...');
     const { startDate, endDate } = getDateRange(days);
     const gsts = await donkiApi.getGSTs(startDate, endDate);
@@ -465,6 +472,7 @@ export async function handleDonkiIPS(ctx: Context & BotContext) {
 
 export async function handleDonkiIPSData(ctx: Context & BotContext, days: number) {
   try {
+    if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка IPS...');
     const { startDate, endDate } = getDateRange(days);
     const ipss = await donkiApi.getIPSs(startDate, endDate);
@@ -504,6 +512,7 @@ export async function handleDonkiIPSData(ctx: Context & BotContext, days: number
 
 export async function handleDonkiNotifications(ctx: Context & BotContext) {
   try {
+    if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка уведомлений...');
     const { startDate, endDate } = getDateRange(7);
     const notifications = await donkiApi.getNotifications(startDate, endDate);
@@ -543,6 +552,7 @@ export async function handleDonkiNotifications(ctx: Context & BotContext) {
 
 export async function handleDonkiWSAEnlil(ctx: Context & BotContext) {
   try {
+    if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка симуляций...');
     const { startDate, endDate } = getDateRange(7);
     const sims = await donkiApi.getWSAEnlilSimulations(startDate, endDate);
@@ -582,6 +592,7 @@ export async function handleDonkiWSAEnlil(ctx: Context & BotContext) {
 
 export async function handleDonkiItemNavigation(ctx: Context & BotContext, data: string) {
   try {
+    if (!ctx.session) ctx.session = {};
     const match = data.match(/donki_(\w+)_item_(\d+)/);
     if (!match) {
       await ctx.answerCbQuery('Неверный формат данных');
@@ -644,6 +655,7 @@ export async function handleDonkiClose(ctx: Context & BotContext) {
 
 export async function handleDonkiToggleMode(ctx: Context & BotContext) {
   try {
+    if (!ctx.session) ctx.session = {};
     if (!ctx.session.donkiData) {
       await ctx.answerCbQuery('Нет активных данных для переключения режима');
       return;
@@ -674,6 +686,7 @@ export async function handleDonkiToggleMode(ctx: Context & BotContext) {
 
 export async function handleDonkiSetMode(ctx: Context & BotContext) {
   try {
+    if (!ctx.session) ctx.session = {};
     // Переключаем режим из главного меню
     ctx.session.donkiSimpleMode = !(ctx.session.donkiSimpleMode ?? false);
     const isSimpleMode = ctx.session.donkiSimpleMode;
