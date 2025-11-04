@@ -12,7 +12,7 @@ interface ApodResponse {
 
 export class ApodApi extends NasaApi {
   async getApod(date?: string): Promise<ApodResponse> {
-    const params = date ? { date } : {};
+    const params: Record<string, string> = date ? { date } : {};
     return this.get<ApodResponse>('/planetary/apod', params);
   }
 } 
