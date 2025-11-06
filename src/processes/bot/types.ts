@@ -10,6 +10,12 @@ import {
   DonkiWSAEnlil,
 } from '../../features/donki/api';
 
+export type CMEAlertLevel = 'extreme' | 'high' | 'all';
+
+export interface DonkiSubscriptions {
+  cme?: CMEAlertLevel; // undefined = не подписан
+}
+
 export interface UserSession {
   images?: {
     currentImages?: NasaImage[];
@@ -23,6 +29,7 @@ export interface UserSession {
   };
   donkiFlaresPeriod?: number;
   donkiSimpleMode?: boolean; // true = простой режим, false/undefined = подробный
+  donkiSubscriptions?: DonkiSubscriptions;
 }
 
 export interface BotContext extends Context {

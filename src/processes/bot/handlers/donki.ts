@@ -1,6 +1,6 @@
 import { Context } from 'telegraf';
-import { BotContext } from '../types';
-import { DonkiApi } from '../../../features/donki/api';
+import { BotContext, CMEAlertLevel } from '../types';
+import { DonkiApi, DonkiCME } from '../../../features/donki/api';
 import {
   formatCME,
   formatFlare,
@@ -18,11 +18,27 @@ import {
   formatWSAEnlilSimple,
 } from '../../../features/donki/formatters';
 import { InlineKeyboardMarkup } from 'telegraf/types';
+import { subscriptionsRepository } from '../../../shared/db/repositories/subscriptions';
 
 const donkiApi = new DonkiApi();
 
-function createDonkiMainMenu(): InlineKeyboardMarkup {
-  return {
+function getCMEAlertLevel(cme: DonkiCME): CMEAlertLevel | null {
+  const speed = cme.cmeAnalyses?.[0]?.speed;
+  if (speed === undefined) return null;
+  
+  if (speed >= 1000) return 'extreme';
+  if (speed >= 700) return 'high';
+  return 'all';
+}
+
+async function createDonkiMainMenu(userId?: number): Promise<InlineKeyboardMarkup> {
+  let hasCMESubscription = false;
+  if (userId) {
+    const subscription = await subscriptionsRepository.getSubscription(userId, 'cme');
+    hasCMESubscription = !!subscription;
+  }
+
+  const menu: InlineKeyboardMarkup = {
     inline_keyboard: [
       [
         { text: '🌊 CME', callback_data: 'donki_cme' },
@@ -40,7 +56,62 @@ function createDonkiMainMenu(): InlineKeyboardMarkup {
         { text: '🌐 WSA-ENLIL', callback_data: 'donki_wsaenlil' },
       ],
       [
+        { text: hasCMESubscription ? '🔔 Управление подписками' : '🔔 Подписки', callback_data: 'donki_subscriptions' },
+      ],
+      [
         { text: '❌ Закрыть', callback_data: 'donki_close' },
+      ],
+    ],
+  };
+  return menu;
+}
+
+function createSubscriptionsMenu(cmeLevel?: CMEAlertLevel): InlineKeyboardMarkup {
+  const cmeStatus = cmeLevel 
+    ? `✅ Подписан (${cmeLevel === 'extreme' ? 'Экстремальные' : cmeLevel === 'high' ? 'Высокие' : 'Все'})`
+    : '❌ Не подписан';
+  
+  return {
+    inline_keyboard: [
+      [
+        { text: `🌊 CME: ${cmeStatus}`, callback_data: 'donki_sub_cme_menu' },
+      ],
+      [
+        { text: '🔙 Назад', callback_data: 'donki_menu' },
+      ],
+    ],
+  };
+}
+
+function createCMESubscriptionMenu(currentLevel?: CMEAlertLevel): InlineKeyboardMarkup {
+  return {
+    inline_keyboard: [
+      [
+        { 
+          text: currentLevel === 'extreme' ? '✅ Экстремальные (≥1000 км/с)' : '🔴 Экстремальные (≥1000 км/с)', 
+          callback_data: 'donki_sub_cme_extreme' 
+        },
+      ],
+      [
+        { 
+          text: currentLevel === 'high' ? '✅ Высокие (≥700 км/с)' : '🟠 Высокие (≥700 км/с)', 
+          callback_data: 'donki_sub_cme_high' 
+        },
+      ],
+      [
+        { 
+          text: currentLevel === 'all' ? '✅ Все события CME' : '📋 Все события CME', 
+          callback_data: 'donki_sub_cme_all' 
+        },
+      ],
+      [
+        { 
+          text: '❌ Отписаться', 
+          callback_data: 'donki_sub_cme_none' 
+        },
+      ],
+      [
+        { text: '🔙 Назад', callback_data: 'donki_subscriptions' },
       ],
     ],
   };
@@ -206,6 +277,7 @@ function formatDonkiItem(
 export async function handleDonki(ctx: Context & BotContext) {
   try {
     if (!ctx.session) ctx.session = {};
+    const userId = ctx.from?.id;
     const isSimpleMode = ctx.session.donkiSimpleMode ?? false;
     const modeText = isSimpleMode ? '💬 Простой режим' : '📊 Подробный режим';
     
@@ -227,7 +299,7 @@ ${modeText} (можно переключить после выбора собы�
 <i>Все данные из базы DONKI NASA</i>
     `.trim();
 
-    const menu = createDonkiMainMenu();
+    const menu = await createDonkiMainMenu(userId);
     menu.inline_keyboard.push([
       {
         text: isSimpleMode ? '📊 Переключить на подробный' : '💬 Переключить на простой',
@@ -248,6 +320,7 @@ ${modeText} (можно переключить после выбора собы�
 export async function handleDonkiMenu(ctx: Context & BotContext) {
   try {
     if (!ctx.session) ctx.session = {};
+    const userId = ctx.from?.id;
     const isSimpleMode = ctx.session.donkiSimpleMode ?? false;
     const modeText = isSimpleMode ? '💬 Простой режим' : '📊 Подробный режим';
     
@@ -259,7 +332,7 @@ ${modeText} (можно переключить после выбора собы�
 Выберите тип события:
     `.trim();
 
-    const menu = createDonkiMainMenu();
+    const menu = await createDonkiMainMenu(userId);
     menu.inline_keyboard.push([
       {
         text: isSimpleMode ? '📊 Переключить на подробный' : '💬 Переключить на простой',
@@ -716,6 +789,7 @@ export async function handleDonkiToggleMode(ctx: Context & BotContext) {
 export async function handleDonkiSetMode(ctx: Context & BotContext) {
   try {
     if (!ctx.session) ctx.session = {};
+    const userId = ctx.from?.id;
     // Переключаем режим из главного меню
     ctx.session.donkiSimpleMode = !(ctx.session.donkiSimpleMode ?? false);
     const isSimpleMode = ctx.session.donkiSimpleMode;
@@ -739,7 +813,7 @@ ${modeText} (можно переключить после выбора собы�
 <i>Все данные из базы DONKI NASA</i>
     `.trim();
 
-    const menu = createDonkiMainMenu();
+    const menu = await createDonkiMainMenu(userId);
     menu.inline_keyboard.push([
       {
         text: isSimpleMode ? '📊 Переключить на подробный' : '💬 Переключить на простой',
@@ -756,5 +830,115 @@ ${modeText} (можно переключить после выбора собы�
   } catch (error) {
     console.error('DONKI Set Mode Error:', error);
     await ctx.answerCbQuery('Ошибка изменения режима');
+  }
+}
+
+export async function handleDonkiSubscriptions(ctx: Context & BotContext) {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.answerCbQuery('Ошибка: не удалось определить пользователя');
+      return;
+    }
+
+    const userId = ctx.from.id;
+    const subscription = await subscriptionsRepository.getSubscription(userId, 'cme');
+    const cmeLevel = subscription ? (subscription.alertLevel as CMEAlertLevel) : undefined;
+    
+    const message = `
+🔔 <b>Управление подписками</b>
+
+Выберите тип события для настройки уведомлений:
+
+<i>Вы будете получать уведомления о новых событиях выбранного типа и уровня.</i>
+    `.trim();
+
+    await ctx.editMessageText(message, {
+      parse_mode: 'HTML',
+      reply_markup: createSubscriptionsMenu(cmeLevel),
+    });
+  } catch (error) {
+    console.error('DONKI Subscriptions Error:', error);
+    await ctx.answerCbQuery('Ошибка загрузки подписок');
+  }
+}
+
+export async function handleDonkiCMESubscriptionMenu(ctx: Context & BotContext) {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.answerCbQuery('Ошибка: не удалось определить пользователя');
+      return;
+    }
+
+    const userId = ctx.from.id;
+    const subscription = await subscriptionsRepository.getSubscription(userId, 'cme');
+    const currentLevel = subscription ? (subscription.alertLevel as CMEAlertLevel) : undefined;
+    
+    const message = `
+🌊 <b>Подписка на уведомления CME</b>
+
+Выберите уровень событий, на которые хотите подписаться:
+
+• <b>Экстремальные</b> - скорость ≥1000 км/с
+• <b>Высокие</b> - скорость ≥700 км/с
+• <b>Все события</b> - любые CME события
+
+<i>Вы будете получать уведомления о новых событиях выбранного уровня.</i>
+    `.trim();
+
+    await ctx.editMessageText(message, {
+      parse_mode: 'HTML',
+      reply_markup: createCMESubscriptionMenu(currentLevel),
+    });
+  } catch (error) {
+    console.error('DONKI CME Subscription Menu Error:', error);
+    await ctx.answerCbQuery('Ошибка загрузки меню подписки');
+  }
+}
+
+export async function handleDonkiCMESubscription(ctx: Context & BotContext, level: CMEAlertLevel | null) {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.answerCbQuery('Ошибка: не удалось определить пользователя');
+      return;
+    }
+
+    const userId = ctx.from.id;
+
+    // Сохраняем подписку в БД
+    await subscriptionsRepository.setSubscription(userId, 'cme', level);
+
+    if (level === null) {
+      // Отписка
+      await ctx.answerCbQuery('Вы отписались от уведомлений CME');
+    } else {
+      // Подписка
+      const levelText = level === 'extreme' ? 'экстремальных' : level === 'high' ? 'высоких' : 'всех';
+      await ctx.answerCbQuery(`Подписка на ${levelText} CME активирована`);
+    }
+
+    // Получаем обновленную подписку из БД
+    const subscription = await subscriptionsRepository.getSubscription(userId, 'cme');
+    const currentLevel = subscription ? (subscription.alertLevel as CMEAlertLevel) : undefined;
+
+    // Обновляем меню подписки
+    const message = `
+🌊 <b>Подписка на уведомления CME</b>
+
+Выберите уровень событий, на которые хотите подписаться:
+
+• <b>Экстремальные</b> - скорость ≥1000 км/с
+• <b>Высокие</b> - скорость ≥700 км/с
+• <b>Все события</b> - любые CME события
+
+<i>Вы будете получать уведомления о новых событиях выбранного уровня.</i>
+    `.trim();
+
+    await ctx.editMessageText(message, {
+      parse_mode: 'HTML',
+      reply_markup: createCMESubscriptionMenu(currentLevel),
+    });
+  } catch (error) {
+    console.error('DONKI CME Subscription Error:', error);
+    await ctx.answerCbQuery('Ошибка изменения подписки');
   }
 }

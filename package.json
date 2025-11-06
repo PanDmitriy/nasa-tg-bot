@@ -8,7 +8,10 @@
     "build": "tsc",
     "dev": "ts-node-dev --respawn --transpile-only src/app/index.ts",
     "lint": "eslint . --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
   },
   "keywords": [
     "nasa",
@@ -24,10 +27,12 @@
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.56.0",
     "prettier": "^3.2.5",
+    "prisma": "^6.19.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.0",
     "axios": "^1.8.4",
     "dotenv": "^16.5.0",
     "telegraf": "^4.15.3"
