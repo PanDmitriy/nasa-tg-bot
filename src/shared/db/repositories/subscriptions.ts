@@ -86,7 +86,7 @@ export class SubscriptionsRepository {
       distinct: ['userId'],
     });
 
-    return subscriptions.map(s => s.userId);
+    return subscriptions.map((s: { userId: number }) => s.userId);
   }
 
   // Получить всех пользователей, подписанных на определенный уровень или выше
@@ -109,7 +109,7 @@ export class SubscriptionsRepository {
       distinct: ['userId'],
     });
 
-    return subscriptions.map(s => s.userId);
+    return subscriptions.map((s: { userId: number }) => s.userId);
   }
 }
 
