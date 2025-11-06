@@ -1,5 +1,5 @@
 import { config } from '../../app/config';
-import { ErrorHandler } from '../../shared/lib/errorHandler';
+import { createError } from '../../shared/lib/errorHandler/errorHandler';
 
 interface APODResponse {
   url: string;
@@ -55,7 +55,7 @@ export class NasaAPI {
   static async getPhotoOfDay(): Promise<APODResponse> {
     const response = await fetch(`${this.baseUrl}/planetary/apod?api_key=${this.apiKey}`);
     if (!response.ok) {
-      throw ErrorHandler.createError('Не удалось получить фото дня', 'APOD_ERROR');
+      throw createError('Не удалось получить фото дня', 'APOD_ERROR');
     }
     return response.json() as Promise<APODResponse>;
   }
@@ -63,7 +63,7 @@ export class NasaAPI {
   static async getEarthImage(): Promise<EarthImage> {
     const response = await fetch(`${this.baseUrl}/EPIC/api/natural?api_key=${this.apiKey}`);
     if (!response.ok) {
-      throw ErrorHandler.createError('Не удалось получить снимок Земли', 'EARTH_ERROR');
+      throw createError('Не удалось получить снимок Земли', 'EARTH_ERROR');
     }
     const data = await response.json() as EarthResponse[];
     const latest = data[0];
@@ -83,7 +83,7 @@ export class NasaAPI {
     );
     
     if (!response.ok) {
-      throw ErrorHandler.createError('Не удалось получить данные об астероидах', 'ASTEROIDS_ERROR');
+      throw createError('Не удалось получить данные об астероидах', 'ASTEROIDS_ERROR');
     }
 
     const data = await response.json() as AsteroidsResponse;
