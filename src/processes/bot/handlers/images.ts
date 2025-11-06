@@ -1,9 +1,8 @@
 import { Context, Markup } from 'telegraf';
 import { BotContext } from '../types';
-import { ImagesApi, NasaImage } from '../../../features/images/api';
+import { NasaImage } from '../../../features/images/api';
+import { container } from '../../../shared/di/container';
 import { getCallbackQueryData } from '../../../shared/lib/telegramHelpers';
-
-const imagesApi = new ImagesApi();
 
 
 /**
@@ -21,7 +20,7 @@ export async function handleImages(ctx: Context & BotContext) {
   }
 
   // Иначе показываем меню с популярными темами
-  const topics = imagesApi.getPopularTopics();
+  const topics = container.imagesApi.getPopularTopics();
   
   // Разбиваем на группы по 2 кнопки в ряд
   const keyboard = [];
@@ -60,8 +59,8 @@ export async function handleImageTopic(ctx: Context & BotContext) {
   
   const topicId = data.replace('images_topic_', '');
   
-  const topics = imagesApi.getPopularTopics();
-  const topic = topics.find(t => t.id === topicId);
+  const topics = container.imagesApi.getPopularTopics();
+  const topic = topics.find((t) => t.id === topicId);
   
   if (!topic) {
     await ctx.answerCbQuery('❌ Тема не найдена');
@@ -74,7 +73,7 @@ export async function handleImageTopic(ctx: Context & BotContext) {
     
     const loading = await ctx.reply(`⏳ Загружаю изображения по теме "${topic.name}"...`);
     
-    const images = await imagesApi.searchImages(topic.query, 20);
+    const images = await container.imagesApi.searchImages(topic.query, 20);
     
     if (images.length === 0) {
       await ctx.reply(
@@ -114,7 +113,7 @@ async function handleImageSearch(ctx: Context & BotContext, query: string) {
     await ctx.sendChatAction('upload_photo');
     const loading = await ctx.reply(`⏳ Ищу изображения по запросу "${query}"...`);
     
-    const images = await imagesApi.searchImages(query, 20);
+    const images = await container.imagesApi.searchImages(query, 20);
     
     if (images.length === 0) {
       await ctx.reply(

@@ -1,5 +1,6 @@
 import { Telegram } from 'telegraf';
-import { DonkiApi, DonkiCME } from '../../features/donki/api';
+import { DonkiCME } from '../../features/donki/api';
+import { container } from '../../shared/di/container';
 import { subscriptionsRepository } from '../../shared/db/repositories/subscriptions';
 import { CMEAlertLevel } from '../bot/types';
 import { formatCMESimple, formatNotificationSimple, formatWSAEnlilSimple } from '../../features/donki/formatters';
@@ -13,7 +14,6 @@ interface LastCheckedEvents {
 
 export class DonkiNotificationsService {
   private telegram: Telegram;
-  private donkiApi: DonkiApi;
   private lastCheckedEvents: LastCheckedEvents;
   private checkInterval: NodeJS.Timeout | null = null;
   private isRunning = false;
@@ -23,7 +23,6 @@ export class DonkiNotificationsService {
 
   constructor(telegram: Telegram) {
     this.telegram = telegram;
-    this.donkiApi = new DonkiApi();
     this.lastCheckedEvents = {
       cme: new Set(),
       notifications: new Set(),
@@ -102,7 +101,7 @@ export class DonkiNotificationsService {
    */
   private async checkCMEEvents(startDate: Date, endDate: Date) {
     try {
-      const cmes = await this.donkiApi.getCMEs(startDate, endDate);
+      const cmes = await container.donkiApi.getCMEs(startDate, endDate);
 
       for (const cme of cmes) {
         // Пропускаем, если уже проверяли это событие
@@ -140,7 +139,7 @@ export class DonkiNotificationsService {
    */
   private async checkNotificationEvents(startDate: Date, endDate: Date) {
     try {
-      const notifications = await this.donkiApi.getNotifications(startDate, endDate);
+      const notifications = await container.donkiApi.getNotifications(startDate, endDate);
 
       for (const notification of notifications) {
         // Пропускаем, если уже проверяли это уведомление
@@ -172,7 +171,7 @@ export class DonkiNotificationsService {
    */
   private async checkWSAEnlilEvents(startDate: Date, endDate: Date) {
     try {
-      const simulations = await this.donkiApi.getWSAEnlilSimulations(startDate, endDate);
+      const simulations = await container.donkiApi.getWSAEnlilSimulations(startDate, endDate);
 
       for (const sim of simulations) {
         // Пропускаем, если уже проверяли эту симуляцию

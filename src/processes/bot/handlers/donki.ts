@@ -1,6 +1,7 @@
 import { Context } from 'telegraf';
 import { BotContext, CMEAlertLevel } from '../types';
-import { DonkiApi, DonkiCME, DonkiFlare, DonkiSEP, DonkiGST, DonkiIPS, DonkiNotification, DonkiWSAEnlil } from '../../../features/donki/api';
+import { DonkiCME, DonkiFlare, DonkiSEP, DonkiGST, DonkiIPS, DonkiNotification, DonkiWSAEnlil } from '../../../features/donki/api';
+import { container } from '../../../shared/di/container';
 import {
   formatCME,
   formatFlare,
@@ -19,8 +20,6 @@ import {
 } from '../../../features/donki/formatters';
 import { InlineKeyboardMarkup } from 'telegraf/types';
 import { subscriptionsRepository } from '../../../shared/db/repositories/subscriptions';
-
-const donkiApi = new DonkiApi();
 
 type DonkiEventType = 'cme' | 'flares' | 'sep' | 'gst' | 'ips' | 'notifications' | 'wsaenlil';
 type DonkiEvent = DonkiCME | DonkiFlare | DonkiSEP | DonkiGST | DonkiIPS | DonkiNotification | DonkiWSAEnlil;
@@ -372,7 +371,7 @@ export async function handleDonkiCMEData(ctx: Context & BotContext, days: number
     if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка CME...');
     const { startDate, endDate } = getDateRange(days);
-    const cmes = sortEventsByDateDesc(await donkiApi.getCMEs(startDate, endDate), 'cme');
+    const cmes = sortEventsByDateDesc(await container.donkiApi.getCMEs(startDate, endDate), 'cme');
 
     if (cmes.length === 0) {
       await ctx.editMessageText(
@@ -435,7 +434,7 @@ export async function handleDonkiFlaresData(ctx: Context & BotContext, classType
   try {
     await ctx.answerCbQuery('Загрузка вспышек...');
     const { startDate, endDate } = getDateRange(period);
-    const flares = sortEventsByDateDesc(await donkiApi.getFlares(startDate, endDate, 'M2M_CATALOG', classType), 'flares');
+    const flares = sortEventsByDateDesc(await container.donkiApi.getFlares(startDate, endDate, 'M2M_CATALOG', classType), 'flares');
 
     if (flares.length === 0) {
       await ctx.editMessageText(
@@ -485,7 +484,7 @@ export async function handleDonkiSEPData(ctx: Context & BotContext, days: number
     if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка SEP...');
     const { startDate, endDate } = getDateRange(days);
-    const seps = sortEventsByDateDesc(await donkiApi.getSEPs(startDate, endDate), 'sep');
+    const seps = sortEventsByDateDesc(await container.donkiApi.getSEPs(startDate, endDate), 'sep');
 
     if (seps.length === 0) {
       await ctx.editMessageText(
@@ -535,7 +534,7 @@ export async function handleDonkiGSTData(ctx: Context & BotContext, days: number
     if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка геобурь...');
     const { startDate, endDate } = getDateRange(days);
-    const gsts = sortEventsByDateDesc(await donkiApi.getGSTs(startDate, endDate), 'gst');
+    const gsts = sortEventsByDateDesc(await container.donkiApi.getGSTs(startDate, endDate), 'gst');
 
     if (gsts.length === 0) {
       await ctx.editMessageText(
@@ -585,7 +584,7 @@ export async function handleDonkiIPSData(ctx: Context & BotContext, days: number
     if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка IPS...');
     const { startDate, endDate } = getDateRange(days);
-    const ipss = sortEventsByDateDesc(await donkiApi.getIPSs(startDate, endDate), 'ips');
+    const ipss = sortEventsByDateDesc(await container.donkiApi.getIPSs(startDate, endDate), 'ips');
 
     if (ipss.length === 0) {
       await ctx.editMessageText(
@@ -625,7 +624,7 @@ export async function handleDonkiNotifications(ctx: Context & BotContext) {
     if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка уведомлений...');
     const { startDate, endDate } = getDateRange(7);
-    const notifications = sortEventsByDateDesc(await donkiApi.getNotifications(startDate, endDate), 'notifications');
+    const notifications = sortEventsByDateDesc(await container.donkiApi.getNotifications(startDate, endDate), 'notifications');
 
     if (notifications.length === 0) {
       await ctx.reply(
@@ -665,7 +664,7 @@ export async function handleDonkiWSAEnlil(ctx: Context & BotContext) {
     if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка симуляций...');
     const { startDate, endDate } = getDateRange(7);
-    const sims = sortEventsByDateDesc(await donkiApi.getWSAEnlilSimulations(startDate, endDate), 'wsaenlil');
+    const sims = sortEventsByDateDesc(await container.donkiApi.getWSAEnlilSimulations(startDate, endDate), 'wsaenlil');
 
     if (sims.length === 0) {
       await ctx.editMessageText(
