@@ -1,5 +1,5 @@
 import { Telegram } from 'telegraf';
-import { DonkiApi, DonkiCME, DonkiNotification, DonkiWSAEnlil } from '../../features/donki/api';
+import { DonkiApi, DonkiCME } from '../../features/donki/api';
 import { subscriptionsRepository } from '../../shared/db/repositories/subscriptions';
 import { CMEAlertLevel } from '../bot/types';
 import { formatCMESimple, formatNotificationSimple, formatWSAEnlilSimple } from '../../features/donki/formatters';

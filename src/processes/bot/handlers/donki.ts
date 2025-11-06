@@ -1,6 +1,6 @@
 import { Context } from 'telegraf';
 import { BotContext, CMEAlertLevel } from '../types';
-import { DonkiApi, DonkiCME } from '../../../features/donki/api';
+import { DonkiApi } from '../../../features/donki/api';
 import {
   formatCME,
   formatFlare,
@@ -21,15 +21,6 @@ import { InlineKeyboardMarkup } from 'telegraf/types';
 import { subscriptionsRepository } from '../../../shared/db/repositories/subscriptions';
 
 const donkiApi = new DonkiApi();
-
-function getCMEAlertLevel(cme: DonkiCME): CMEAlertLevel | null {
-  const speed = cme.cmeAnalyses?.[0]?.speed;
-  if (speed === undefined) return null;
-  
-  if (speed >= 1000) return 'extreme';
-  if (speed >= 700) return 'high';
-  return 'all';
-}
 
 async function createDonkiMainMenu(userId?: number): Promise<InlineKeyboardMarkup> {
   let hasAnySubscription = false;
