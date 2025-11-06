@@ -1,23 +1,18 @@
 import { Context } from 'telegraf';
 import { BotContext } from '../types';
-import { AsteroidsService } from '../../../features/asteroids/services/asteroidsService';
-import { AsteroidsApi } from '../../../features/asteroids/api';
-import { config } from '../../../app/config';
-
-const asteroidsApi = new AsteroidsApi(config.nasa.apiKey);
-const asteroidsService = new AsteroidsService(asteroidsApi);
+import { container } from '../../../shared/di/container';
 
 export async function handleAsteroids(ctx: Context & BotContext) {
   try {
-    const asteroids = await asteroidsService.getAsteroids(7);
+    const asteroids = await container.asteroidsService.getAsteroids(7);
     
     if (!asteroids || asteroids.length === 0) {
       await ctx.reply('🌍 За последние 7 дней не было обнаружено астероидов, приближающихся к Земле.');
       return;
     }
 
-    const { hazardous, nonHazardous } = asteroidsService.separateAsteroids(asteroids);
-    const sortedNonHazardous = asteroidsService.sortByDistance(nonHazardous).slice(0, 5);
+    const { hazardous, nonHazardous } = container.asteroidsService.separateAsteroids(asteroids);
+    const sortedNonHazardous = container.asteroidsService.sortByDistance(nonHazardous).slice(0, 5);
 
     // Отправляем общую статистику
     await ctx.reply(
@@ -29,10 +24,10 @@ export async function handleAsteroids(ctx: Context & BotContext) {
 
     // Отправляем информацию об опасных астероидах
     if (hazardous.length > 0) {
-      const messages = asteroidsService.formatAsteroidsMessage(
+      const messages = container.asteroidsService.formatAsteroidsMessage(
         hazardous,
         '⚠️ <b>Потенциально опасные астероиды:</b>',
-        (a) => asteroidsService.formatHazardousAsteroid(a)
+        (a) => container.asteroidsService.formatHazardousAsteroid(a)
       );
       
       for (const message of messages) {
@@ -42,10 +37,10 @@ export async function handleAsteroids(ctx: Context & BotContext) {
 
     // Отправляем информацию о ближайших безопасных астероидах
     if (sortedNonHazardous.length > 0) {
-      const messages = asteroidsService.formatAsteroidsMessage(
+      const messages = container.asteroidsService.formatAsteroidsMessage(
         sortedNonHazardous,
         '🟢 <b>Ближайшие безопасные астероиды:</b>',
-        (a) => asteroidsService.formatSafeAsteroid(a)
+        (a) => container.asteroidsService.formatSafeAsteroid(a)
       );
       
       for (const message of messages) {

@@ -1,15 +1,13 @@
 import { Context, Markup } from 'telegraf';
 import { BotContext } from '../types';
-import { EarthApi } from '../../../features/earth/api';
+import { container } from '../../../shared/di/container';
 import { getCallbackQueryData, getMessageId } from '../../../shared/lib/telegramHelpers';
-
-const earthApi = new EarthApi();
 
 export async function handleEarth(ctx: Context & BotContext) {
   try {
     await ctx.sendChatAction('upload_photo');
     const loading = await ctx.reply('⏳ Загружаю снимок…');
-    const image = await earthApi.getLatestEarthImageWithFallback('natural');
+    const image = await container.earthApi.getLatestEarthImageWithFallback('natural');
     
     await ctx.replyWithPhoto(image.image, {
       caption: `🌍 <b>Снимок Земли${image.isFallback ? ' — последняя доступная дата' : ''}</b>\n\n` +
@@ -57,7 +55,7 @@ export async function handleEarthType(ctx: Context & BotContext) {
   await ctx.sendChatAction('upload_photo');
   const loading = await ctx.reply('⏳ Загружаю снимок…');
   try {
-    const image = await earthApi.getLatestEarthImageWithFallback(type as 'natural' | 'enhanced');
+    const image = await container.earthApi.getLatestEarthImageWithFallback(type as 'natural' | 'enhanced');
     await ctx.replyWithPhoto(image.image, {
       caption: `🌍 <b>Снимок Земли (${type === 'natural' ? 'Natural' : 'Enhanced'})${image.isFallback ? ' — последняя доступная дата' : ''}</b>\n\n` +
         `📅 <i>${new Date(image.date).toLocaleString('ru-RU')}</i>\n\n` +

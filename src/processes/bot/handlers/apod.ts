@@ -1,12 +1,8 @@
 import { Context } from 'telegraf';
 import { BotContext } from '../types';
-import { ApodService } from '../../../features/apod/services/apodService';
-import { ApodApi } from '../../../features/apod/api';
+import { container } from '../../../shared/di/container';
 import { config } from '../../../app/config';
 import { getMessageId } from '../../../shared/lib/telegramHelpers';
-
-const apodApi = new ApodApi(config.nasa.apiKey);
-const apodService = new ApodService(apodApi);
 
 export async function handleAPOD(ctx: Context & BotContext) {
   // Показываем индикатор загрузки и сообщение пользователю
@@ -24,9 +20,9 @@ export async function handleAPOD(ctx: Context & BotContext) {
       }, config.api.timeout / 2);
     });
     
-    // Получаем случайное APOD через сервис
+    // Получаем случайное APOD через сервис из DI контейнера
     const apod = await Promise.race([
-      apodService.getRandomApod(),
+      container.apodService.getRandomApod(),
       timeoutPromise
     ]);
     
@@ -40,7 +36,7 @@ export async function handleAPOD(ctx: Context & BotContext) {
     }
 
     if (apod.media_type !== 'image') {
-      const message = apodService.formatApodAsText(apod);
+      const message = container.apodService.formatApodAsText(apod);
       await ctx.reply(message, { 
         parse_mode: 'HTML',
         link_preview_options: { is_disabled: true }
@@ -54,7 +50,7 @@ export async function handleAPOD(ctx: Context & BotContext) {
       return;
     }
 
-    const caption = apodService.formatApodAsImage(apod);
+    const caption = container.apodService.formatApodAsImage(apod);
     await ctx.replyWithPhoto(apod.url, {
       caption,
       parse_mode: 'HTML'
