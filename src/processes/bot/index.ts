@@ -1,6 +1,8 @@
 import { Telegraf } from 'telegraf';
 import { config } from '../../app/config';
 import { BotContext, UserSession } from './types';
+import { handleTelegramError } from '../../shared/lib/errorHandler/errorHandler';
+import { rateLimitMiddleware } from '../../shared/lib/rateLimiter';
 import { handleStart } from './handlers/start';
 import { handleAPOD } from './handlers/apod';
 import { handleEarth, handleEarthRetry, handleEarthType } from './handlers/earth';
@@ -45,26 +47,86 @@ import {
 
 export class Bot {
   private bot: Telegraf<BotContext>;
-  private sessions: Map<number, UserSession>;
+  private sessions: Map<number, { session: UserSession; lastAccess: Date }>;
+  private sessionCleanupInterval: NodeJS.Timeout | null = null;
+  private readonly SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 часа
+  private readonly CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 минут
 
   constructor() {
     this.bot = new Telegraf<BotContext>(config.bot.token);
     this.sessions = new Map();
     this.setupMiddleware();
     this.setupCommands();
+    this.startSessionCleanup();
   }
 
   private setupMiddleware() {
+    // Middleware для rate limiting (должен быть первым)
+    this.bot.use(rateLimitMiddleware());
+
+    // Middleware для обработки ошибок
+    this.bot.use(async (ctx, next) => {
+      try {
+        await next();
+      } catch (error) {
+        await handleTelegramError(ctx, error, 'Bot Middleware');
+      }
+    });
+
+    // Middleware для управления сессиями
     this.bot.use((ctx, next) => {
       const chatId = ctx.chat?.id;
       if (chatId) {
-        if (!this.sessions.has(chatId)) {
-          this.sessions.set(chatId, {});
+        const sessionData = this.sessions.get(chatId);
+        if (sessionData) {
+          sessionData.lastAccess = new Date();
+          ctx.session = sessionData.session;
+        } else {
+          const newSession: UserSession = {};
+          this.sessions.set(chatId, { session: newSession, lastAccess: new Date() });
+          ctx.session = newSession;
         }
-        ctx.session = this.sessions.get(chatId);
       }
       return next();
     });
+  }
+
+  /**
+   * Очищает старые сессии для предотвращения утечек памяти
+   */
+  private cleanupOldSessions(): void {
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    for (const [userId, data] of this.sessions.entries()) {
+      if (now - data.lastAccess.getTime() > this.SESSION_TTL_MS) {
+        this.sessions.delete(userId);
+        cleanedCount++;
+      }
+    }
+
+    if (cleanedCount > 0) {
+      console.log(`Очищено ${cleanedCount} устаревших сессий`);
+    }
+  }
+
+  /**
+   * Запускает периодическую очистку старых сессий
+   */
+  private startSessionCleanup(): void {
+    this.sessionCleanupInterval = setInterval(() => {
+      this.cleanupOldSessions();
+    }, this.CLEANUP_INTERVAL_MS);
+  }
+
+  /**
+   * Останавливает очистку сессий
+   */
+  private stopSessionCleanup(): void {
+    if (this.sessionCleanupInterval) {
+      clearInterval(this.sessionCleanupInterval);
+      this.sessionCleanupInterval = null;
+    }
   }
 
   private setupCommands() {
@@ -188,6 +250,7 @@ export class Bot {
   }
 
   public async stop() {
+    this.stopSessionCleanup();
     await this.bot.stop();
     console.log('Bot stopped');
   }

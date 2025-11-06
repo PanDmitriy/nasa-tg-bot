@@ -10,10 +10,8 @@ const apodApi = new ApodApi(config.nasa.apiKey);
  * @returns Дата в формате YYYY-MM-DD
  */
 function getRandomApodDate(): string {
-  // Первая доступная дата APOD - 16 июня 1995
-  const startDate = new Date('1995-06-16');
-  // Конечная дата - 1 октября 2025
-  const endDate = new Date('2025-10-01');
+  const startDate = new Date(config.apod.startDate);
+  const endDate = new Date(config.apod.endDate);
   
   // Генерируем случайное количество дней между датами
   const timeDiff = endDate.getTime() - startDate.getTime();
@@ -31,7 +29,7 @@ function getRandomApodDate(): string {
 export async function handleAPOD(ctx: Context & BotContext) {
   // Показываем индикатор загрузки и сообщение пользователю
   await ctx.sendChatAction('upload_photo');
-  let loadingMessage: any = null;
+  let loadingMessage: { message_id: number } | null = null;
   
   try {
     // Отправляем сообщение о загрузке
@@ -40,11 +38,11 @@ export async function handleAPOD(ctx: Context & BotContext) {
     // Генерируем случайную дату для запроса APOD
     const randomDate = getRandomApodDate();
     
-    // Создаем таймаут для запроса (15 секунд, чуть больше чем таймаут axios)
+    // Создаем таймаут для запроса (используем половину таймаута из конфига для дополнительной безопасности)
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
         reject(new Error('Request timeout: Превышено время ожидания ответа от NASA API'));
-      }, 15000);
+      }, config.api.timeout / 2);
     });
     
     // Объединяем запрос с таймаутом
@@ -97,8 +95,9 @@ export async function handleAPOD(ctx: Context & BotContext) {
     console.error('APOD Error:', error);
     
     // Удаляем сообщение о загрузке при ошибке
-    if (loadingMessage) {
-      try { await ctx.deleteMessage(loadingMessage.message_id); } catch {}
+    const messageId = loadingMessage ? loadingMessage.message_id : null;
+    if (messageId) {
+      try { await ctx.deleteMessage(messageId); } catch {}
     }
     
     // Улучшенная обработка ошибок

@@ -9,6 +9,17 @@ export interface Config {
     apiKey: string;
     baseUrl: string;
   };
+  apod: {
+    startDate: string; // Первая доступная дата APOD
+    endDate: string; // Конечная дата (обычно текущая дата)
+  };
+  donki: {
+    checkIntervalMs: number; // Интервал проверки новых событий в миллисекундах
+  };
+  api: {
+    timeout: number; // Таймаут запросов в миллисекундах
+    maxRetries: number; // Максимальное количество попыток повтора
+  };
   timezone: string;
   dateFormat: {
     day: 'numeric' | '2-digit';

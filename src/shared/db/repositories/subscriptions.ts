@@ -75,7 +75,7 @@ export class SubscriptionsRepository {
   // Для CME: alertLevel может быть 'extreme', 'high', 'all'
   // Для notifications и wsaenlil: alertLevel может быть 'enabled' или не указан (вернет всех подписанных)
   async getSubscribers(eventType: EventType, alertLevel?: CMEAlertLevel | 'enabled'): Promise<number[]> {
-    const where: any = { eventType };
+    const where: { eventType: EventType; alertLevel?: CMEAlertLevel | 'enabled' } = { eventType };
     if (alertLevel) {
       where.alertLevel = alertLevel;
     }

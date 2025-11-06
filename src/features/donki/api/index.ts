@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import { config } from '../../../app/config';
 
 const DONKI_BASE_URL = 'https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get';
 
@@ -110,12 +111,12 @@ export class DonkiApi {
   constructor() {
     this.client = axios.create({
       baseURL: DONKI_BASE_URL,
-      timeout: 30000,
+      timeout: config.api.timeout,
     });
   }
 
   private async get<T>(endpoint: string, params: Record<string, string | number> = {}): Promise<T[]> {
-    const maxAttempts = 3;
+    const maxAttempts = config.api.maxRetries;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const response = await this.client.get<T[]>(endpoint, { params });

@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import { config } from '../../../app/config';
 
 interface NasaImageLink {
   href: string;
@@ -45,7 +46,7 @@ export class ImagesApi {
   constructor() {
     this.client = axios.create({
       baseURL: this.baseUrl,
-      timeout: 30000,
+      timeout: config.api.timeout,
     });
   }
 
@@ -53,7 +54,7 @@ export class ImagesApi {
    * Поиск изображений по запросу
    */
   async searchImages(query: string, limit: number = 20): Promise<NasaImage[]> {
-    const maxAttempts = 3;
+    const maxAttempts = config.api.maxRetries;
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {

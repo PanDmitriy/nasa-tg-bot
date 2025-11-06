@@ -1,6 +1,7 @@
 import { Context, Markup } from 'telegraf';
 import { BotContext } from '../types';
 import { ImagesApi, NasaImage } from '../../../features/images/api';
+import { getCallbackQueryData } from '../../../shared/lib/telegramHelpers';
 
 const imagesApi = new ImagesApi();
 
@@ -51,7 +52,12 @@ export async function handleImages(ctx: Context & BotContext) {
  * Обработка выбора темы
  */
 export async function handleImageTopic(ctx: Context & BotContext) {
-  const data = (ctx.callbackQuery as any)?.data as string;
+  const data = getCallbackQueryData(ctx);
+  if (!data) {
+    await ctx.answerCbQuery('❌ Ошибка получения данных');
+    return;
+  }
+  
   const topicId = data.replace('images_topic_', '');
   
   const topics = imagesApi.getPopularTopics();

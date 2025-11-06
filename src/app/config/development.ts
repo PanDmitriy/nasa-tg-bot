@@ -17,6 +17,17 @@ export const developmentConfig: Config = {
     apiKey: process.env.NASA_API_KEY || '',
     baseUrl: 'https://api.nasa.gov'
   },
+  apod: {
+    startDate: '1995-06-16', // Первая доступная дата APOD
+    endDate: new Date().toISOString().split('T')[0], // Текущая дата
+  },
+  donki: {
+    checkIntervalMs: 15 * 60 * 1000, // 15 минут
+  },
+  api: {
+    timeout: 30000, // 30 секунд
+    maxRetries: 3,
+  },
   timezone: 'Europe/Moscow',
   dateFormat: {
     day: 'numeric',
