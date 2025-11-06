@@ -1,6 +1,7 @@
 import { Context, Markup } from 'telegraf';
 import { BotContext } from '../types';
 import { EarthApi } from '../../../features/earth/api';
+import { getCallbackQueryData, getMessageId } from '../../../shared/lib/telegramHelpers';
 
 const earthApi = new EarthApi();
 
@@ -49,7 +50,7 @@ export async function handleEarthRetry(ctx: Context & BotContext) {
 }
 
 export async function handleEarthType(ctx: Context & BotContext) {
-  const data = (ctx.callbackQuery as any)?.data as string | undefined;
+  const data = getCallbackQueryData(ctx);
   const type = data === 'earth_type_enhanced' ? 'enhanced' : 'natural';
   try { await ctx.answerCbQuery(); } catch {}
   try { await ctx.deleteMessage(); } catch {}
@@ -73,6 +74,9 @@ export async function handleEarthType(ctx: Context & BotContext) {
       Markup.button.callback('🔄 Повторить', 'earth_retry')
     ]));
   } finally {
-    try { await ctx.deleteMessage((loading as any).message_id); } catch {}
+    const messageId = getMessageId(loading);
+    if (messageId) {
+      try { await ctx.deleteMessage(messageId); } catch {}
+    }
   }
 }

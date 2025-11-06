@@ -3,6 +3,7 @@ import { DonkiApi, DonkiCME } from '../../features/donki/api';
 import { subscriptionsRepository } from '../../shared/db/repositories/subscriptions';
 import { CMEAlertLevel } from '../bot/types';
 import { formatCMESimple, formatNotificationSimple, formatWSAEnlilSimple } from '../../features/donki/formatters';
+import { config } from '../../app/config';
 
 interface LastCheckedEvents {
   cme: Set<string>; // activityID
@@ -17,8 +18,8 @@ export class DonkiNotificationsService {
   private checkInterval: NodeJS.Timeout | null = null;
   private isRunning = false;
 
-  // Интервал проверки в миллисекундах (по умолчанию 15 минут)
-  private readonly CHECK_INTERVAL_MS = 15 * 60 * 1000;
+  // Интервал проверки берется из конфигурации
+  private readonly CHECK_INTERVAL_MS = config.donki.checkIntervalMs;
 
   constructor(telegram: Telegram) {
     this.telegram = telegram;
@@ -219,10 +220,15 @@ export class DonkiNotificationsService {
         await this.telegram.sendMessage(userId, message, {
           parse_mode: 'HTML',
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Игнорируем ошибки, связанные с блокировкой бота пользователем
-        if (error?.response?.error_code === 403) {
-          console.log(`Пользователь ${userId} заблокировал бота`);
+        if (error && typeof error === 'object' && 'response' in error) {
+          const telegramError = error as { response?: { error_code?: number } };
+          if (telegramError.response?.error_code === 403) {
+            console.log(`Пользователь ${userId} заблокировал бота`);
+          } else {
+            console.error(`Ошибка при отправке уведомления пользователю ${userId}:`, error);
+          }
         } else {
           console.error(`Ошибка при отправке уведомления пользователю ${userId}:`, error);
         }

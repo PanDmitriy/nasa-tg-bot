@@ -1,6 +1,6 @@
 import { Context } from 'telegraf';
 import { BotContext, CMEAlertLevel } from '../types';
-import { DonkiApi } from '../../../features/donki/api';
+import { DonkiApi, DonkiCME, DonkiFlare, DonkiSEP, DonkiGST, DonkiIPS, DonkiNotification, DonkiWSAEnlil } from '../../../features/donki/api';
 import {
   formatCME,
   formatFlare,
@@ -21,6 +21,9 @@ import { InlineKeyboardMarkup } from 'telegraf/types';
 import { subscriptionsRepository } from '../../../shared/db/repositories/subscriptions';
 
 const donkiApi = new DonkiApi();
+
+type DonkiEventType = 'cme' | 'flares' | 'sep' | 'gst' | 'ips' | 'notifications' | 'wsaenlil';
+type DonkiEvent = DonkiCME | DonkiFlare | DonkiSEP | DonkiGST | DonkiIPS | DonkiNotification | DonkiWSAEnlil;
 
 async function createDonkiMainMenu(userId?: number): Promise<InlineKeyboardMarkup> {
   let hasAnySubscription = false;
@@ -164,28 +167,29 @@ function getDateRange(days: number): { startDate: Date; endDate: Date } {
   return { startDate, endDate };
 }
 
-function getEventDate(item: any, type: string): Date {
+function getEventDate(item: DonkiEvent, type: DonkiEventType): Date {
   switch (type) {
     case 'cme':
-      return new Date(item.startTime);
+      return new Date((item as DonkiCME).startTime);
     case 'flares':
-      return new Date(item.peakTime || item.beginTime);
+      const flare = item as DonkiFlare;
+      return new Date(flare.peakTime || flare.beginTime);
     case 'sep':
-      return new Date(item.eventTime);
+      return new Date((item as DonkiSEP).eventTime);
     case 'gst':
-      return new Date(item.startTime);
+      return new Date((item as DonkiGST).startTime);
     case 'ips':
-      return new Date(item.eventTime);
+      return new Date((item as DonkiIPS).eventTime);
     case 'notifications':
-      return new Date(item.messageIssueTime);
+      return new Date((item as DonkiNotification).messageIssueTime);
     case 'wsaenlil':
-      return new Date(item.modelCompletionTime);
+      return new Date((item as DonkiWSAEnlil).modelCompletionTime);
     default:
       return new Date(0);
   }
 }
 
-function sortEventsByDateDesc(items: any[], type: string): any[] {
+function sortEventsByDateDesc(items: DonkiEvent[], type: DonkiEventType): DonkiEvent[] {
   return [...items].sort((a, b) => {
     const dateA = getEventDate(a, type);
     const dateB = getEventDate(b, type);
@@ -194,8 +198,8 @@ function sortEventsByDateDesc(items: any[], type: string): any[] {
 }
 
 function createKeyboardWithModeToggle(
-  items: any[],
-  type: string,
+  items: DonkiEvent[],
+  type: DonkiEventType,
   currentIndex: number,
   isSimpleMode: boolean
 ): InlineKeyboardMarkup {
@@ -233,45 +237,45 @@ function createKeyboardWithModeToggle(
 }
 
 function formatDonkiItem(
-  item: any,
-  type: string,
+  item: DonkiEvent,
+  type: DonkiEventType,
   isSimpleMode: boolean
 ): string {
   if (isSimpleMode) {
     switch (type) {
       case 'cme':
-        return formatCMESimple(item);
+        return formatCMESimple(item as DonkiCME);
       case 'flares':
-        return formatFlareSimple(item);
+        return formatFlareSimple(item as DonkiFlare);
       case 'sep':
-        return formatSEPSimple(item);
+        return formatSEPSimple(item as DonkiSEP);
       case 'gst':
-        return formatGSTSimple(item);
+        return formatGSTSimple(item as DonkiGST);
       case 'ips':
-        return formatIPSSimple(item);
+        return formatIPSSimple(item as DonkiIPS);
       case 'notifications':
-        return formatNotificationSimple(item);
+        return formatNotificationSimple(item as DonkiNotification);
       case 'wsaenlil':
-        return formatWSAEnlilSimple(item);
+        return formatWSAEnlilSimple(item as DonkiWSAEnlil);
       default:
         return '';
     }
   } else {
     switch (type) {
       case 'cme':
-        return formatCME(item);
+        return formatCME(item as DonkiCME);
       case 'flares':
-        return formatFlare(item);
+        return formatFlare(item as DonkiFlare);
       case 'sep':
-        return formatSEP(item);
+        return formatSEP(item as DonkiSEP);
       case 'gst':
-        return formatGST(item);
+        return formatGST(item as DonkiGST);
       case 'ips':
-        return formatIPS(item);
+        return formatIPS(item as DonkiIPS);
       case 'notifications':
-        return formatNotification(item);
+        return formatNotification(item as DonkiNotification);
       case 'wsaenlil':
-        return formatWSAEnlil(item);
+        return formatWSAEnlil(item as DonkiWSAEnlil);
       default:
         return '';
     }
@@ -740,9 +744,20 @@ export async function handleDonkiItemNavigation(ctx: Context & BotContext, data:
     });
 
     await ctx.answerCbQuery();
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Обработка ошибки "message is not modified"
-    if (error?.response?.error_code === 400 && error?.response?.description?.includes('message is not modified')) {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'response' in error &&
+      error.response &&
+      typeof error.response === 'object' &&
+      'error_code' in error.response &&
+      error.response.error_code === 400 &&
+      'description' in error.response &&
+      typeof error.response.description === 'string' &&
+      error.response.description.includes('message is not modified')
+    ) {
       await ctx.answerCbQuery('Вы уже на этом элементе');
       return;
     }

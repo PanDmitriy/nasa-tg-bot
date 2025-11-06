@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import { config } from '../../app/config';
 
 export class NasaApi {
   protected client: AxiosInstance;
@@ -8,13 +9,13 @@ export class NasaApi {
     this.apiKey = apiKey;
     this.client = axios.create({
       baseURL: baseUrl,
-      timeout: 30000,
+      timeout: config.api.timeout,
       params: this.apiKey ? { api_key: this.apiKey } : undefined
     });
   }
 
   protected async get<T>(endpoint: string, params: Record<string, string | number> = {}): Promise<T> {
-    const maxAttempts = 3;
+    const maxAttempts = config.api.maxRetries;
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
