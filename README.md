@@ -26,6 +26,8 @@ Telegram бот для получения информации о космосе
 - Node.js
 - Telegraf (Telegram Bot Framework)
 - Axios (HTTP клиент)
+- Prisma (ORM для работы с базой данных)
+- SQLite (База данных)
 - ESLint & Prettier (Линтинг и форматирование)
 - Docker (Контейнеризация)
 
@@ -53,14 +55,23 @@ cd nasa-tg-bot
 npm install
 ```
 
-3. Создайте файл `.env` на основе `.env.example` и заполните необходимые переменные окружения:
-```bash
-cp .env.example .env
+3. Создайте файл `.env` в корне проекта и добавьте следующие переменные окружения:
+```
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+NASA_API_KEY=your_nasa_api_key
+DATABASE_URL=file:./data/bot.db
 ```
 
-4. Отредактируйте файл `.env`, добавив:
-- TELEGRAM_BOT_TOKEN - токен вашего Telegram бота
-- NASA_API_KEY - API ключ NASA
+Где:
+- `TELEGRAM_BOT_TOKEN` - токен вашего Telegram бота (получить у [@BotFather](https://t.me/BotFather))
+- `NASA_API_KEY` - API ключ NASA (получить на [api.nasa.gov](https://api.nasa.gov/))
+- `DATABASE_URL` - путь к файлу базы данных SQLite
+
+4. Инициализируйте базу данных:
+```bash
+npm run db:generate
+npm run db:migrate
+```
 
 ## Запуск
 
@@ -89,6 +100,8 @@ docker run -d --env-file .env nasa-tg-bot
 - `/asteroids` - Получить информацию о ближайших астероидах
 - `/images` - Галерея изображений NASA (выбор темы или поиск)
 - `/donki` - Космическая погода (DONKI)
+  - Просмотр событий космической погоды
+  - Подписки на уведомления о событиях
 - `/help` - Показать справку по командам
 
 ## Структура проекта
@@ -111,12 +124,17 @@ src/
 │   ├── images/           # Images API
 │   └── nasa/             # Базовый NASA API клиент
 ├── processes/            # Бизнес-процессы
-│   └── bot/              # Telegram бот
-│       ├── handlers/     # Обработчики команд и действий
-│       ├── index.ts      # Класс бота
-│       └── types.ts      # Типы бота
+│   ├── bot/              # Telegram бот
+│   │   ├── handlers/     # Обработчики команд и действий
+│   │   ├── index.ts      # Класс бота
+│   │   └── types.ts      # Типы бота
+│   └── notifications/    # Сервисы уведомлений
+│       └── donki-notifications.ts  # Уведомления о событиях DONKI
 └── shared/               # Общие утилиты
     ├── api/              # Общие API клиенты
+    ├── db/               # Работа с базой данных
+    │   ├── prisma.ts     # Prisma клиент
+    │   └── repositories/ # Репозитории для работы с данными
     ├── lib/              # Библиотеки (обработка ошибок)
     └── ui/               # UI компоненты (клавиатуры)
 ```
@@ -128,17 +146,30 @@ src/
 - `npm run dev` - запуск в режиме разработки с hot-reload
 - `npm run lint` - проверка кода линтером ESLint
 - `npm run format` - форматирование кода с помощью Prettier
+- `npm run db:generate` - генерация Prisma клиента
+- `npm run db:migrate` - применение миграций базы данных
+- `npm run db:studio` - запуск Prisma Studio для просмотра данных
 
 ## Разработка
 
 Проект использует Feature-Sliced Design архитектуру для организации кода. Каждый функциональный модуль изолирован и может быть легко расширен или изменен.
+
+### База данных
+
+Проект использует Prisma ORM с SQLite базой данных. База данных хранится в файле `data/bot.db` и используется для:
+- Хранения информации о пользователях
+- Управления подписками на уведомления DONKI
+
+### Система уведомлений
+
+Бот включает систему уведомлений о событиях космической погоды (DONKI). Пользователи могут подписываться на различные типы событий и получать автоматические уведомления.
 
 ### Добавление новой функции
 
 1. Создайте новый модуль в `src/features/`
 2. Добавьте обработчик в `src/processes/bot/handlers/`
 3. Зарегистрируйте команду в `src/processes/bot/index.ts`
-4. Добавьте команду в конфигурацию `src/app/config/`
+4. При необходимости добавьте модели в `prisma/schema.prisma` и выполните миграцию
 
 ## Лицензия
 

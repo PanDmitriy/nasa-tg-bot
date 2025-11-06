@@ -1,6 +1,6 @@
 import { Context } from 'telegraf';
-import { BotContext } from '../types';
-import { DonkiApi } from '../../../features/donki/api';
+import { BotContext, CMEAlertLevel } from '../types';
+import { DonkiApi, DonkiCME } from '../../../features/donki/api';
 import {
   formatCME,
   formatFlare,
@@ -18,11 +18,27 @@ import {
   formatWSAEnlilSimple,
 } from '../../../features/donki/formatters';
 import { InlineKeyboardMarkup } from 'telegraf/types';
+import { subscriptionsRepository } from '../../../shared/db/repositories/subscriptions';
 
 const donkiApi = new DonkiApi();
 
-function createDonkiMainMenu(): InlineKeyboardMarkup {
-  return {
+function getCMEAlertLevel(cme: DonkiCME): CMEAlertLevel | null {
+  const speed = cme.cmeAnalyses?.[0]?.speed;
+  if (speed === undefined) return null;
+  
+  if (speed >= 1000) return 'extreme';
+  if (speed >= 700) return 'high';
+  return 'all';
+}
+
+async function createDonkiMainMenu(userId?: number): Promise<InlineKeyboardMarkup> {
+  let hasAnySubscription = false;
+  if (userId) {
+    const subscriptions = await subscriptionsRepository.getUserSubscriptions(userId);
+    hasAnySubscription = subscriptions.length > 0;
+  }
+
+  const menu: InlineKeyboardMarkup = {
     inline_keyboard: [
       [
         { text: '🌊 CME', callback_data: 'donki_cme' },
@@ -40,7 +56,75 @@ function createDonkiMainMenu(): InlineKeyboardMarkup {
         { text: '🌐 WSA-ENLIL', callback_data: 'donki_wsaenlil' },
       ],
       [
+        { text: hasAnySubscription ? '🔔 Управление подписками' : '🔔 Подписки', callback_data: 'donki_subscriptions' },
+      ],
+      [
         { text: '❌ Закрыть', callback_data: 'donki_close' },
+      ],
+    ],
+  };
+  return menu;
+}
+
+async function createSubscriptionsMenu(userId: number): Promise<InlineKeyboardMarkup> {
+  const cmeSub = await subscriptionsRepository.getSubscription(userId, 'cme');
+  const notificationsSub = await subscriptionsRepository.getSubscription(userId, 'notifications');
+  const wsaenlilSub = await subscriptionsRepository.getSubscription(userId, 'wsaenlil');
+
+  const cmeStatus = cmeSub 
+    ? `✅ Подписан (${cmeSub.alertLevel === 'extreme' ? 'Экстремальные' : cmeSub.alertLevel === 'high' ? 'Высокие' : 'Все'})`
+    : '❌ Не подписан';
+  
+  const notificationsStatus = notificationsSub ? '✅ Подписан' : '❌ Не подписан';
+  const wsaenlilStatus = wsaenlilSub ? '✅ Подписан' : '❌ Не подписан';
+  
+  return {
+    inline_keyboard: [
+      [
+        { text: `🌊 CME: ${cmeStatus}`, callback_data: 'donki_sub_cme_menu' },
+      ],
+      [
+        { text: `📢 Уведомления: ${notificationsStatus}`, callback_data: 'donki_sub_notifications_toggle' },
+      ],
+      [
+        { text: `🌐 WSA-ENLIL: ${wsaenlilStatus}`, callback_data: 'donki_sub_wsaenlil_toggle' },
+      ],
+      [
+        { text: '🔙 Назад', callback_data: 'donki_menu' },
+      ],
+    ],
+  };
+}
+
+function createCMESubscriptionMenu(currentLevel?: CMEAlertLevel): InlineKeyboardMarkup {
+  return {
+    inline_keyboard: [
+      [
+        { 
+          text: currentLevel === 'extreme' ? '✅ Экстремальные (≥1000 км/с)' : '🔴 Экстремальные (≥1000 км/с)', 
+          callback_data: 'donki_sub_cme_extreme' 
+        },
+      ],
+      [
+        { 
+          text: currentLevel === 'high' ? '✅ Высокие (≥700 км/с)' : '🟠 Высокие (≥700 км/с)', 
+          callback_data: 'donki_sub_cme_high' 
+        },
+      ],
+      [
+        { 
+          text: currentLevel === 'all' ? '✅ Все события CME' : '📋 Все события CME', 
+          callback_data: 'donki_sub_cme_all' 
+        },
+      ],
+      [
+        { 
+          text: '❌ Отписаться', 
+          callback_data: 'donki_sub_cme_none' 
+        },
+      ],
+      [
+        { text: '🔙 Назад', callback_data: 'donki_subscriptions' },
       ],
     ],
   };
@@ -87,6 +171,35 @@ function getDateRange(days: number): { startDate: Date; endDate: Date } {
   const startDate = new Date();
   startDate.setDate(endDate.getDate() - days);
   return { startDate, endDate };
+}
+
+function getEventDate(item: any, type: string): Date {
+  switch (type) {
+    case 'cme':
+      return new Date(item.startTime);
+    case 'flares':
+      return new Date(item.peakTime || item.beginTime);
+    case 'sep':
+      return new Date(item.eventTime);
+    case 'gst':
+      return new Date(item.startTime);
+    case 'ips':
+      return new Date(item.eventTime);
+    case 'notifications':
+      return new Date(item.messageIssueTime);
+    case 'wsaenlil':
+      return new Date(item.modelCompletionTime);
+    default:
+      return new Date(0);
+  }
+}
+
+function sortEventsByDateDesc(items: any[], type: string): any[] {
+  return [...items].sort((a, b) => {
+    const dateA = getEventDate(a, type);
+    const dateB = getEventDate(b, type);
+    return dateB.getTime() - dateA.getTime(); // Сортировка по убыванию (новые сначала)
+  });
 }
 
 function createKeyboardWithModeToggle(
@@ -177,6 +290,7 @@ function formatDonkiItem(
 export async function handleDonki(ctx: Context & BotContext) {
   try {
     if (!ctx.session) ctx.session = {};
+    const userId = ctx.from?.id;
     const isSimpleMode = ctx.session.donkiSimpleMode ?? false;
     const modeText = isSimpleMode ? '💬 Простой режим' : '📊 Подробный режим';
     
@@ -198,7 +312,7 @@ ${modeText} (можно переключить после выбора собы�
 <i>Все данные из базы DONKI NASA</i>
     `.trim();
 
-    const menu = createDonkiMainMenu();
+    const menu = await createDonkiMainMenu(userId);
     menu.inline_keyboard.push([
       {
         text: isSimpleMode ? '📊 Переключить на подробный' : '💬 Переключить на простой',
@@ -219,6 +333,7 @@ ${modeText} (можно переключить после выбора собы�
 export async function handleDonkiMenu(ctx: Context & BotContext) {
   try {
     if (!ctx.session) ctx.session = {};
+    const userId = ctx.from?.id;
     const isSimpleMode = ctx.session.donkiSimpleMode ?? false;
     const modeText = isSimpleMode ? '💬 Простой режим' : '📊 Подробный режим';
     
@@ -230,7 +345,7 @@ ${modeText} (можно переключить после выбора собы�
 Выберите тип события:
     `.trim();
 
-    const menu = createDonkiMainMenu();
+    const menu = await createDonkiMainMenu(userId);
     menu.inline_keyboard.push([
       {
         text: isSimpleMode ? '📊 Переключить на подробный' : '💬 Переключить на простой',
@@ -262,7 +377,7 @@ export async function handleDonkiCMEData(ctx: Context & BotContext, days: number
     if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка CME...');
     const { startDate, endDate } = getDateRange(days);
-    const cmes = await donkiApi.getCMEs(startDate, endDate);
+    const cmes = sortEventsByDateDesc(await donkiApi.getCMEs(startDate, endDate), 'cme');
 
     if (cmes.length === 0) {
       await ctx.editMessageText(
@@ -325,7 +440,7 @@ export async function handleDonkiFlaresData(ctx: Context & BotContext, classType
   try {
     await ctx.answerCbQuery('Загрузка вспышек...');
     const { startDate, endDate } = getDateRange(period);
-    const flares = await donkiApi.getFlares(startDate, endDate, 'M2M_CATALOG', classType);
+    const flares = sortEventsByDateDesc(await donkiApi.getFlares(startDate, endDate, 'M2M_CATALOG', classType), 'flares');
 
     if (flares.length === 0) {
       await ctx.editMessageText(
@@ -375,7 +490,7 @@ export async function handleDonkiSEPData(ctx: Context & BotContext, days: number
     if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка SEP...');
     const { startDate, endDate } = getDateRange(days);
-    const seps = await donkiApi.getSEPs(startDate, endDate);
+    const seps = sortEventsByDateDesc(await donkiApi.getSEPs(startDate, endDate), 'sep');
 
     if (seps.length === 0) {
       await ctx.editMessageText(
@@ -425,7 +540,7 @@ export async function handleDonkiGSTData(ctx: Context & BotContext, days: number
     if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка геобурь...');
     const { startDate, endDate } = getDateRange(days);
-    const gsts = await donkiApi.getGSTs(startDate, endDate);
+    const gsts = sortEventsByDateDesc(await donkiApi.getGSTs(startDate, endDate), 'gst');
 
     if (gsts.length === 0) {
       await ctx.editMessageText(
@@ -475,7 +590,7 @@ export async function handleDonkiIPSData(ctx: Context & BotContext, days: number
     if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка IPS...');
     const { startDate, endDate } = getDateRange(days);
-    const ipss = await donkiApi.getIPSs(startDate, endDate);
+    const ipss = sortEventsByDateDesc(await donkiApi.getIPSs(startDate, endDate), 'ips');
 
     if (ipss.length === 0) {
       await ctx.editMessageText(
@@ -515,7 +630,7 @@ export async function handleDonkiNotifications(ctx: Context & BotContext) {
     if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка уведомлений...');
     const { startDate, endDate } = getDateRange(7);
-    const notifications = await donkiApi.getNotifications(startDate, endDate);
+    const notifications = sortEventsByDateDesc(await donkiApi.getNotifications(startDate, endDate), 'notifications');
 
     if (notifications.length === 0) {
       await ctx.reply(
@@ -555,7 +670,7 @@ export async function handleDonkiWSAEnlil(ctx: Context & BotContext) {
     if (!ctx.session) ctx.session = {};
     await ctx.answerCbQuery('Загрузка симуляций...');
     const { startDate, endDate } = getDateRange(7);
-    const sims = await donkiApi.getWSAEnlilSimulations(startDate, endDate);
+    const sims = sortEventsByDateDesc(await donkiApi.getWSAEnlilSimulations(startDate, endDate), 'wsaenlil');
 
     if (sims.length === 0) {
       await ctx.editMessageText(
@@ -687,6 +802,7 @@ export async function handleDonkiToggleMode(ctx: Context & BotContext) {
 export async function handleDonkiSetMode(ctx: Context & BotContext) {
   try {
     if (!ctx.session) ctx.session = {};
+    const userId = ctx.from?.id;
     // Переключаем режим из главного меню
     ctx.session.donkiSimpleMode = !(ctx.session.donkiSimpleMode ?? false);
     const isSimpleMode = ctx.session.donkiSimpleMode;
@@ -710,7 +826,7 @@ ${modeText} (можно переключить после выбора собы�
 <i>Все данные из базы DONKI NASA</i>
     `.trim();
 
-    const menu = createDonkiMainMenu();
+    const menu = await createDonkiMainMenu(userId);
     menu.inline_keyboard.push([
       {
         text: isSimpleMode ? '📊 Переключить на подробный' : '💬 Переключить на простой',
@@ -727,5 +843,197 @@ ${modeText} (можно переключить после выбора собы�
   } catch (error) {
     console.error('DONKI Set Mode Error:', error);
     await ctx.answerCbQuery('Ошибка изменения режима');
+  }
+}
+
+export async function handleDonkiSubscriptions(ctx: Context & BotContext) {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.answerCbQuery('Ошибка: не удалось определить пользователя');
+      return;
+    }
+
+    const userId = ctx.from.id;
+    
+    const message = `
+🔔 <b>Управление подписками</b>
+
+Выберите тип события для настройки уведомлений:
+
+<i>Вы будете получать уведомления о новых событиях выбранного типа.</i>
+    `.trim();
+
+    const menu = await createSubscriptionsMenu(userId);
+
+    await ctx.editMessageText(message, {
+      parse_mode: 'HTML',
+      reply_markup: menu,
+    });
+  } catch (error) {
+    console.error('DONKI Subscriptions Error:', error);
+    await ctx.answerCbQuery('Ошибка загрузки подписок');
+  }
+}
+
+export async function handleDonkiCMESubscriptionMenu(ctx: Context & BotContext) {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.answerCbQuery('Ошибка: не удалось определить пользователя');
+      return;
+    }
+
+    const userId = ctx.from.id;
+    const subscription = await subscriptionsRepository.getSubscription(userId, 'cme');
+    const currentLevel = subscription ? (subscription.alertLevel as CMEAlertLevel) : undefined;
+    
+    const message = `
+🌊 <b>Подписка на уведомления CME</b>
+
+Выберите уровень событий, на которые хотите подписаться:
+
+• <b>Экстремальные</b> - скорость ≥1000 км/с
+• <b>Высокие</b> - скорость ≥700 км/с
+• <b>Все события</b> - любые CME события
+
+<i>Вы будете получать уведомления о новых событиях выбранного уровня.</i>
+    `.trim();
+
+    await ctx.editMessageText(message, {
+      parse_mode: 'HTML',
+      reply_markup: createCMESubscriptionMenu(currentLevel),
+    });
+  } catch (error) {
+    console.error('DONKI CME Subscription Menu Error:', error);
+    await ctx.answerCbQuery('Ошибка загрузки меню подписки');
+  }
+}
+
+export async function handleDonkiCMESubscription(ctx: Context & BotContext, level: CMEAlertLevel | null) {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.answerCbQuery('Ошибка: не удалось определить пользователя');
+      return;
+    }
+
+    const userId = ctx.from.id;
+
+    // Сохраняем подписку в БД
+    await subscriptionsRepository.setSubscription(userId, 'cme', level);
+
+    if (level === null) {
+      // Отписка
+      await ctx.answerCbQuery('Вы отписались от уведомлений CME');
+    } else {
+      // Подписка
+      const levelText = level === 'extreme' ? 'экстремальных' : level === 'high' ? 'высоких' : 'всех';
+      await ctx.answerCbQuery(`Подписка на ${levelText} CME активирована`);
+    }
+
+    // Получаем обновленную подписку из БД
+    const subscription = await subscriptionsRepository.getSubscription(userId, 'cme');
+    const currentLevel = subscription ? (subscription.alertLevel as CMEAlertLevel) : undefined;
+
+    // Обновляем меню подписки
+    const message = `
+🌊 <b>Подписка на уведомления CME</b>
+
+Выберите уровень событий, на которые хотите подписаться:
+
+• <b>Экстремальные</b> - скорость ≥1000 км/с
+• <b>Высокие</b> - скорость ≥700 км/с
+• <b>Все события</b> - любые CME события
+
+<i>Вы будете получать уведомления о новых событиях выбранного уровня.</i>
+    `.trim();
+
+    await ctx.editMessageText(message, {
+      parse_mode: 'HTML',
+      reply_markup: createCMESubscriptionMenu(currentLevel),
+    });
+  } catch (error) {
+    console.error('DONKI CME Subscription Error:', error);
+    await ctx.answerCbQuery('Ошибка изменения подписки');
+  }
+}
+
+export async function handleDonkiNotificationsSubscription(ctx: Context & BotContext) {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.answerCbQuery('Ошибка: не удалось определить пользователя');
+      return;
+    }
+
+    const userId = ctx.from.id;
+    const subscription = await subscriptionsRepository.getSubscription(userId, 'notifications');
+    const isSubscribed = !!subscription;
+
+    // Переключаем подписку
+    if (isSubscribed) {
+      await subscriptionsRepository.setSubscription(userId, 'notifications', null);
+      await ctx.answerCbQuery('Вы отписались от уведомлений DONKI');
+    } else {
+      await subscriptionsRepository.setSubscription(userId, 'notifications', 'enabled');
+      await ctx.answerCbQuery('Вы подписались на уведомления DONKI');
+    }
+
+    // Обновляем меню подписок
+    const message = `
+🔔 <b>Управление подписками</b>
+
+Выберите тип события для настройки уведомлений:
+
+<i>Вы будете получать уведомления о новых событиях выбранного типа.</i>
+    `.trim();
+
+    const menu = await createSubscriptionsMenu(userId);
+
+    await ctx.editMessageText(message, {
+      parse_mode: 'HTML',
+      reply_markup: menu,
+    });
+  } catch (error) {
+    console.error('DONKI Notifications Subscription Error:', error);
+    await ctx.answerCbQuery('Ошибка изменения подписки');
+  }
+}
+
+export async function handleDonkiWSAEnlilSubscription(ctx: Context & BotContext) {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.answerCbQuery('Ошибка: не удалось определить пользователя');
+      return;
+    }
+
+    const userId = ctx.from.id;
+    const subscription = await subscriptionsRepository.getSubscription(userId, 'wsaenlil');
+    const isSubscribed = !!subscription;
+
+    // Переключаем подписку
+    if (isSubscribed) {
+      await subscriptionsRepository.setSubscription(userId, 'wsaenlil', null);
+      await ctx.answerCbQuery('Вы отписались от симуляций WSA-ENLIL');
+    } else {
+      await subscriptionsRepository.setSubscription(userId, 'wsaenlil', 'enabled');
+      await ctx.answerCbQuery('Вы подписались на симуляции WSA-ENLIL');
+    }
+
+    // Обновляем меню подписок
+    const message = `
+🔔 <b>Управление подписками</b>
+
+Выберите тип события для настройки уведомлений:
+
+<i>Вы будете получать уведомления о новых событиях выбранного типа.</i>
+    `.trim();
+
+    const menu = await createSubscriptionsMenu(userId);
+
+    await ctx.editMessageText(message, {
+      parse_mode: 'HTML',
+      reply_markup: menu,
+    });
+  } catch (error) {
+    console.error('DONKI WSAEnlil Subscription Error:', error);
+    await ctx.answerCbQuery('Ошибка изменения подписки');
   }
 }

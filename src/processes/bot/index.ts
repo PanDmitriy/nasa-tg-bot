@@ -36,6 +36,11 @@ import {
   handleDonkiItemNavigation,
   handleDonkiToggleMode,
   handleDonkiSetMode,
+  handleDonkiSubscriptions,
+  handleDonkiCMESubscriptionMenu,
+  handleDonkiCMESubscription,
+  handleDonkiNotificationsSubscription,
+  handleDonkiWSAEnlilSubscription,
 } from './handlers/donki';
 
 export class Bot {
@@ -157,6 +162,24 @@ export class Bot {
     // DONKI mode toggle
     this.bot.action('donki_toggle_mode', handleDonkiToggleMode);
     this.bot.action('donki_set_mode', handleDonkiSetMode);
+
+    // DONKI subscriptions
+    this.bot.action('donki_subscriptions', handleDonkiSubscriptions);
+    this.bot.action('donki_sub_cme_menu', handleDonkiCMESubscriptionMenu);
+    this.bot.action('donki_sub_cme_extreme', async (ctx) => {
+      await handleDonkiCMESubscription(ctx as BotContext, 'extreme');
+    });
+    this.bot.action('donki_sub_cme_high', async (ctx) => {
+      await handleDonkiCMESubscription(ctx as BotContext, 'high');
+    });
+    this.bot.action('donki_sub_cme_all', async (ctx) => {
+      await handleDonkiCMESubscription(ctx as BotContext, 'all');
+    });
+    this.bot.action('donki_sub_cme_none', async (ctx) => {
+      await handleDonkiCMESubscription(ctx as BotContext, null);
+    });
+    this.bot.action('donki_sub_notifications_toggle', handleDonkiNotificationsSubscription);
+    this.bot.action('donki_sub_wsaenlil_toggle', handleDonkiWSAEnlilSubscription);
   }
 
   public async start() {
@@ -167,5 +190,9 @@ export class Bot {
   public async stop() {
     await this.bot.stop();
     console.log('Bot stopped');
+  }
+
+  public getTelegram() {
+    return this.bot.telegram;
   }
 } 

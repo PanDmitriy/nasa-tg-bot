@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int       @id @default(autoincrement())
+  telegramId Int       @unique @map("telegram_id")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  
+  subscriptions DonkiSubscription[]
+
+  @@map("users")
+}
+
+model DonkiSubscription {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  eventType  String    @map("event_type")
+  alertLevel String    @map("alert_level")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  
+  user User @relation(fields: [userId], references: [telegramId], onDelete: Cascade)
+
+  @@unique([userId, eventType])
+  @@index([userId])
+  @@index([eventType])
+  @@map("donki_subscriptions")
+}
