@@ -32,10 +32,10 @@ function getCMEAlertLevel(cme: DonkiCME): CMEAlertLevel | null {
 }
 
 async function createDonkiMainMenu(userId?: number): Promise<InlineKeyboardMarkup> {
-  let hasCMESubscription = false;
+  let hasAnySubscription = false;
   if (userId) {
-    const subscription = await subscriptionsRepository.getSubscription(userId, 'cme');
-    hasCMESubscription = !!subscription;
+    const subscriptions = await subscriptionsRepository.getUserSubscriptions(userId);
+    hasAnySubscription = subscriptions.length > 0;
   }
 
   const menu: InlineKeyboardMarkup = {
@@ -56,7 +56,7 @@ async function createDonkiMainMenu(userId?: number): Promise<InlineKeyboardMarku
         { text: '🌐 WSA-ENLIL', callback_data: 'donki_wsaenlil' },
       ],
       [
-        { text: hasCMESubscription ? '🔔 Управление подписками' : '🔔 Подписки', callback_data: 'donki_subscriptions' },
+        { text: hasAnySubscription ? '🔔 Управление подписками' : '🔔 Подписки', callback_data: 'donki_subscriptions' },
       ],
       [
         { text: '❌ Закрыть', callback_data: 'donki_close' },
@@ -66,15 +66,28 @@ async function createDonkiMainMenu(userId?: number): Promise<InlineKeyboardMarku
   return menu;
 }
 
-function createSubscriptionsMenu(cmeLevel?: CMEAlertLevel): InlineKeyboardMarkup {
-  const cmeStatus = cmeLevel 
-    ? `✅ Подписан (${cmeLevel === 'extreme' ? 'Экстремальные' : cmeLevel === 'high' ? 'Высокие' : 'Все'})`
+async function createSubscriptionsMenu(userId: number): Promise<InlineKeyboardMarkup> {
+  const cmeSub = await subscriptionsRepository.getSubscription(userId, 'cme');
+  const notificationsSub = await subscriptionsRepository.getSubscription(userId, 'notifications');
+  const wsaenlilSub = await subscriptionsRepository.getSubscription(userId, 'wsaenlil');
+
+  const cmeStatus = cmeSub 
+    ? `✅ Подписан (${cmeSub.alertLevel === 'extreme' ? 'Экстремальные' : cmeSub.alertLevel === 'high' ? 'Высокие' : 'Все'})`
     : '❌ Не подписан';
+  
+  const notificationsStatus = notificationsSub ? '✅ Подписан' : '❌ Не подписан';
+  const wsaenlilStatus = wsaenlilSub ? '✅ Подписан' : '❌ Не подписан';
   
   return {
     inline_keyboard: [
       [
         { text: `🌊 CME: ${cmeStatus}`, callback_data: 'donki_sub_cme_menu' },
+      ],
+      [
+        { text: `📢 Уведомления: ${notificationsStatus}`, callback_data: 'donki_sub_notifications_toggle' },
+      ],
+      [
+        { text: `🌐 WSA-ENLIL: ${wsaenlilStatus}`, callback_data: 'donki_sub_wsaenlil_toggle' },
       ],
       [
         { text: '🔙 Назад', callback_data: 'donki_menu' },
@@ -841,20 +854,20 @@ export async function handleDonkiSubscriptions(ctx: Context & BotContext) {
     }
 
     const userId = ctx.from.id;
-    const subscription = await subscriptionsRepository.getSubscription(userId, 'cme');
-    const cmeLevel = subscription ? (subscription.alertLevel as CMEAlertLevel) : undefined;
     
     const message = `
 🔔 <b>Управление подписками</b>
 
 Выберите тип события для настройки уведомлений:
 
-<i>Вы будете получать уведомления о новых событиях выбранного типа и уровня.</i>
+<i>Вы будете получать уведомления о новых событиях выбранного типа.</i>
     `.trim();
+
+    const menu = await createSubscriptionsMenu(userId);
 
     await ctx.editMessageText(message, {
       parse_mode: 'HTML',
-      reply_markup: createSubscriptionsMenu(cmeLevel),
+      reply_markup: menu,
     });
   } catch (error) {
     console.error('DONKI Subscriptions Error:', error);
@@ -939,6 +952,88 @@ export async function handleDonkiCMESubscription(ctx: Context & BotContext, leve
     });
   } catch (error) {
     console.error('DONKI CME Subscription Error:', error);
+    await ctx.answerCbQuery('Ошибка изменения подписки');
+  }
+}
+
+export async function handleDonkiNotificationsSubscription(ctx: Context & BotContext) {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.answerCbQuery('Ошибка: не удалось определить пользователя');
+      return;
+    }
+
+    const userId = ctx.from.id;
+    const subscription = await subscriptionsRepository.getSubscription(userId, 'notifications');
+    const isSubscribed = !!subscription;
+
+    // Переключаем подписку
+    if (isSubscribed) {
+      await subscriptionsRepository.setSubscription(userId, 'notifications', null);
+      await ctx.answerCbQuery('Вы отписались от уведомлений DONKI');
+    } else {
+      await subscriptionsRepository.setSubscription(userId, 'notifications', 'enabled');
+      await ctx.answerCbQuery('Вы подписались на уведомления DONKI');
+    }
+
+    // Обновляем меню подписок
+    const message = `
+🔔 <b>Управление подписками</b>
+
+Выберите тип события для настройки уведомлений:
+
+<i>Вы будете получать уведомления о новых событиях выбранного типа.</i>
+    `.trim();
+
+    const menu = await createSubscriptionsMenu(userId);
+
+    await ctx.editMessageText(message, {
+      parse_mode: 'HTML',
+      reply_markup: menu,
+    });
+  } catch (error) {
+    console.error('DONKI Notifications Subscription Error:', error);
+    await ctx.answerCbQuery('Ошибка изменения подписки');
+  }
+}
+
+export async function handleDonkiWSAEnlilSubscription(ctx: Context & BotContext) {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.answerCbQuery('Ошибка: не удалось определить пользователя');
+      return;
+    }
+
+    const userId = ctx.from.id;
+    const subscription = await subscriptionsRepository.getSubscription(userId, 'wsaenlil');
+    const isSubscribed = !!subscription;
+
+    // Переключаем подписку
+    if (isSubscribed) {
+      await subscriptionsRepository.setSubscription(userId, 'wsaenlil', null);
+      await ctx.answerCbQuery('Вы отписались от симуляций WSA-ENLIL');
+    } else {
+      await subscriptionsRepository.setSubscription(userId, 'wsaenlil', 'enabled');
+      await ctx.answerCbQuery('Вы подписались на симуляции WSA-ENLIL');
+    }
+
+    // Обновляем меню подписок
+    const message = `
+🔔 <b>Управление подписками</b>
+
+Выберите тип события для настройки уведомлений:
+
+<i>Вы будете получать уведомления о новых событиях выбранного типа.</i>
+    `.trim();
+
+    const menu = await createSubscriptionsMenu(userId);
+
+    await ctx.editMessageText(message, {
+      parse_mode: 'HTML',
+      reply_markup: menu,
+    });
+  } catch (error) {
+    console.error('DONKI WSAEnlil Subscription Error:', error);
     await ctx.answerCbQuery('Ошибка изменения подписки');
   }
 }

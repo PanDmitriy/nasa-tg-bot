@@ -33,10 +33,12 @@ export class SubscriptionsRepository {
   }
 
   // Создать или обновить подписку
+  // Для CME: alertLevel может быть 'extreme', 'high', 'all'
+  // Для notifications и wsaenlil: alertLevel может быть 'enabled' или null
   async setSubscription(
     userId: number,
     eventType: EventType,
-    alertLevel: CMEAlertLevel | null
+    alertLevel: CMEAlertLevel | 'enabled' | null
   ): Promise<void> {
     await this.ensureUser(userId);
 
@@ -70,7 +72,9 @@ export class SubscriptionsRepository {
   }
 
   // Получить всех пользователей, подписанных на определенный тип события и уровень
-  async getSubscribers(eventType: EventType, alertLevel?: CMEAlertLevel): Promise<number[]> {
+  // Для CME: alertLevel может быть 'extreme', 'high', 'all'
+  // Для notifications и wsaenlil: alertLevel может быть 'enabled' или не указан (вернет всех подписанных)
+  async getSubscribers(eventType: EventType, alertLevel?: CMEAlertLevel | 'enabled'): Promise<number[]> {
     const where: any = { eventType };
     if (alertLevel) {
       where.alertLevel = alertLevel;

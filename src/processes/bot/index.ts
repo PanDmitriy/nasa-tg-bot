@@ -39,6 +39,8 @@ import {
   handleDonkiSubscriptions,
   handleDonkiCMESubscriptionMenu,
   handleDonkiCMESubscription,
+  handleDonkiNotificationsSubscription,
+  handleDonkiWSAEnlilSubscription,
 } from './handlers/donki';
 
 export class Bot {
@@ -176,6 +178,8 @@ export class Bot {
     this.bot.action('donki_sub_cme_none', async (ctx) => {
       await handleDonkiCMESubscription(ctx as BotContext, null);
     });
+    this.bot.action('donki_sub_notifications_toggle', handleDonkiNotificationsSubscription);
+    this.bot.action('donki_sub_wsaenlil_toggle', handleDonkiWSAEnlilSubscription);
   }
 
   public async start() {
@@ -186,5 +190,9 @@ export class Bot {
   public async stop() {
     await this.bot.stop();
     console.log('Bot stopped');
+  }
+
+  public getTelegram() {
+    return this.bot.telegram;
   }
 } 
