@@ -44,6 +44,15 @@ import {
   handleDonkiNotificationsSubscription,
   handleDonkiWSAEnlilSubscription,
 } from './handlers/donki';
+import {
+  handleSubscribe,
+  handleSubscribeType,
+  handleSubscribeTime,
+  handleSubscribeConfirm,
+  handleSubscribeCancel,
+  handleSubscribeClose,
+  handleSubscribeTimeInput,
+} from '../../features/subscriptions/commands.subscribe';
 
 export class Bot {
   private bot: Telegraf<BotContext>;
@@ -139,6 +148,7 @@ export class Bot {
     this.bot.command('images', handleImages);
     this.bot.command('donki', handleDonki);
     this.bot.command('help', handleHelp);
+    this.bot.command('subscribe', handleSubscribe);
 
     // Earth actions
     this.bot.action('earth_retry', handleEarthRetry);
@@ -242,6 +252,16 @@ export class Bot {
     });
     this.bot.action('donki_sub_notifications_toggle', handleDonkiNotificationsSubscription);
     this.bot.action('donki_sub_wsaenlil_toggle', handleDonkiWSAEnlilSubscription);
+
+    // Subscribe actions
+    this.bot.action(/^subscribe_type_(apod|earth|donki)$/, handleSubscribeType);
+    this.bot.action(/^subscribe_time_\d+$/, handleSubscribeTime);
+    this.bot.action('subscribe_confirm', handleSubscribeConfirm);
+    this.bot.action('subscribe_cancel', handleSubscribeCancel);
+    this.bot.action('subscribe_close', handleSubscribeClose);
+
+    // Обработка текстового ввода времени для подписки
+    this.bot.on('text', handleSubscribeTimeInput);
   }
 
   public async start() {

@@ -36,3 +36,20 @@ model DonkiSubscription {
   @@index([eventType])
   @@map("donki_subscriptions")
 }
+
+model Subscription {
+  id         Int      @id @default(autoincrement())
+  telegramId String
+  chatId     String
+  type       String   // 'apod' | 'earth' | 'donki'
+  params     Json?
+  hourUtc    Int      // 0..23
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([chatId])
+  @@index([type])
+  @@index([enabled])
+  @@map("subscriptions")
+}
