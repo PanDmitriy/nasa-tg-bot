@@ -71,3 +71,15 @@ model NotificationLog {
   @@index([createdAt])
   @@map("notification_logs")
 }
+
+model Premium {
+  id         Int      @id @default(autoincrement())
+  telegramId String
+  active     Boolean  @default(true)
+  until      DateTime
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([telegramId])
+  @@index([active])
+  @@map("premiums")
+}

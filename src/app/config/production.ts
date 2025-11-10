@@ -12,6 +12,7 @@ export const productionConfig: Config = {
       { command: 'donki', description: 'Космическая погода (DONKI)' },
       { command: 'subscribe', description: 'Подписка на Daily APOD' },
       { command: 'unsubscribe', description: 'Отключить подписки' },
+      { command: 'premium', description: 'Premium подписка' },
       { command: 'help', description: 'Помощь' },
     ]
   },

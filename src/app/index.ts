@@ -3,6 +3,7 @@ import { Bot } from '../processes/bot';
 import { DonkiNotificationsService } from '../processes/notifications/donki-notifications';
 import { SubscriptionScheduler } from '../processes/schedulers/subscription.scheduler';
 import { closeDatabase } from '../shared/db/prisma';
+import { startWebhookServer } from './webhook.server';
 
 /**
  * Валидация обязательных переменных окружения
@@ -31,6 +32,7 @@ validateConfig();
 const bot = new Bot();
 let notificationsService: DonkiNotificationsService | null = null;
 let subscriptionScheduler: SubscriptionScheduler | null = null;
+let webhookServer: ReturnType<typeof startWebhookServer> | null = null;
 
 // Обработка завершения работы
 process.once('SIGINT', async () => {
@@ -39,6 +41,9 @@ process.once('SIGINT', async () => {
   }
   if (subscriptionScheduler) {
     subscriptionScheduler.stop();
+  }
+  if (webhookServer) {
+    webhookServer.close();
   }
   await closeDatabase();
   bot.stop();
@@ -49,6 +54,9 @@ process.once('SIGTERM', async () => {
   }
   if (subscriptionScheduler) {
     subscriptionScheduler.stop();
+  }
+  if (webhookServer) {
+    webhookServer.close();
   }
   await closeDatabase();
   bot.stop();
@@ -65,6 +73,14 @@ bot.start()
     // Запускаем scheduler подписок
     subscriptionScheduler = new SubscriptionScheduler(telegram);
     subscriptionScheduler.start();
+
+    // Запускаем webhook сервер для Stripe (опционально, только если нужен)
+    const webhookPort = process.env.WEBHOOK_PORT ? parseInt(process.env.WEBHOOK_PORT, 10) : 3000;
+    if (process.env.STRIPE_SECRET_KEY) {
+      webhookServer = startWebhookServer(webhookPort);
+    } else {
+      console.log('Stripe webhook server is disabled (STRIPE_SECRET_KEY not set)');
+    }
   })
   .catch((error) => {
     console.error('Ошибка запуска бота:', error);
