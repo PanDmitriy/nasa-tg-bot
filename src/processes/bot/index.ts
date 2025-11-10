@@ -53,6 +53,11 @@ import {
   handleSubscribeClose,
   handleSubscribeTimeInput,
 } from '../../features/subscriptions/commands.subscribe';
+import {
+  handleUnsubscribe,
+  handleUnsubscribeItem,
+  handleUnsubscribeClose,
+} from '../../features/subscriptions/commands.unsubscribe';
 
 export class Bot {
   private bot: Telegraf<BotContext>;
@@ -149,6 +154,7 @@ export class Bot {
     this.bot.command('donki', handleDonki);
     this.bot.command('help', handleHelp);
     this.bot.command('subscribe', handleSubscribe);
+    this.bot.command('unsubscribe', handleUnsubscribe);
 
     // Earth actions
     this.bot.action('earth_retry', handleEarthRetry);
@@ -259,6 +265,10 @@ export class Bot {
     this.bot.action('subscribe_confirm', handleSubscribeConfirm);
     this.bot.action('subscribe_cancel', handleSubscribeCancel);
     this.bot.action('subscribe_close', handleSubscribeClose);
+
+    // Unsubscribe actions
+    this.bot.action(/^unsubscribe_\d+$/, handleUnsubscribeItem);
+    this.bot.action('unsubscribe_close', handleUnsubscribeClose);
 
     // Обработка текстового ввода времени для подписки
     this.bot.on('text', handleSubscribeTimeInput);

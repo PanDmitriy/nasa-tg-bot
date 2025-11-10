@@ -82,5 +82,27 @@ export class SubscriptionService {
       where: { id },
     });
   }
+
+  /**
+   * Отключает подписку (устанавливает enabled = false)
+   * Проверяет, что подписка принадлежит указанному chatId
+   */
+  async disable(id: number, chatId: string) {
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        id,
+        chatId,
+      },
+    });
+
+    if (!subscription) {
+      throw new Error(`Subscription with id ${id} not found for chat ${chatId}`);
+    }
+
+    return await prisma.subscription.update({
+      where: { id },
+      data: { enabled: false },
+    });
+  }
 }
 

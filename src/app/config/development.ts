@@ -11,6 +11,7 @@ export const developmentConfig: Config = {
       { command: 'images', description: 'Галерея изображений NASA' },
       { command: 'donki', description: 'Космическая погода (DONKI)' },
       { command: 'subscribe', description: 'Подписка на Daily APOD' },
+      { command: 'unsubscribe', description: 'Отключить подписки' },
       { command: 'help', description: 'Помощь' },
     ]
   },
