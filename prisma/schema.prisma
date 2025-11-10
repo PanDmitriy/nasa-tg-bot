@@ -53,3 +53,21 @@ model Subscription {
   @@index([enabled])
   @@map("subscriptions")
 }
+
+model NotificationLog {
+  id             Int       @id @default(autoincrement())
+  subscriptionId Int?      @map("subscription_id")
+  telegramId      String?
+  chatId         String?
+  type           String
+  status         String    // 'sent' | 'failed'
+  payload        Json?
+  error          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([subscriptionId])
+  @@index([chatId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notification_logs")
+}

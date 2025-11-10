@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { Bot } from '../processes/bot';
 import { DonkiNotificationsService } from '../processes/notifications/donki-notifications';
+import { SubscriptionScheduler } from '../processes/schedulers/subscription.scheduler';
 import { closeDatabase } from '../shared/db/prisma';
 
 /**
@@ -29,11 +30,15 @@ validateConfig();
 
 const bot = new Bot();
 let notificationsService: DonkiNotificationsService | null = null;
+let subscriptionScheduler: SubscriptionScheduler | null = null;
 
 // Обработка завершения работы
 process.once('SIGINT', async () => {
   if (notificationsService) {
     notificationsService.stop();
+  }
+  if (subscriptionScheduler) {
+    subscriptionScheduler.stop();
   }
   await closeDatabase();
   bot.stop();
@@ -41,6 +46,9 @@ process.once('SIGINT', async () => {
 process.once('SIGTERM', async () => {
   if (notificationsService) {
     notificationsService.stop();
+  }
+  if (subscriptionScheduler) {
+    subscriptionScheduler.stop();
   }
   await closeDatabase();
   bot.stop();
@@ -53,6 +61,10 @@ bot.start()
     const telegram = bot.getTelegram();
     notificationsService = new DonkiNotificationsService(telegram);
     notificationsService.start();
+
+    // Запускаем scheduler подписок
+    subscriptionScheduler = new SubscriptionScheduler(telegram);
+    subscriptionScheduler.start();
   })
   .catch((error) => {
     console.error('Ошибка запуска бота:', error);
