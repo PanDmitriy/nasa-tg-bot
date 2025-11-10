@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import { Context } from 'telegraf';
 import { BotContext } from '../../../processes/bot/types';
 
@@ -44,6 +45,19 @@ export async function handleTelegramError(
   context: string = 'Handler'
 ): Promise<void> {
   console.error(`${context} Error:`, error);
+
+  // Отправляем ошибку в Sentry с контекстом
+  const sentryError = error instanceof Error ? error : new Error(String(error));
+  Sentry.captureException(sentryError, {
+    tags: {
+      handler: context,
+      chatId: ctx.chat?.id?.toString(),
+    },
+    extra: {
+      updateType: ctx.updateType,
+      message: ctx.message ? JSON.stringify(ctx.message) : undefined,
+    },
+  });
 
   const errorMessage = error instanceof Error ? error.message : String(error);
 

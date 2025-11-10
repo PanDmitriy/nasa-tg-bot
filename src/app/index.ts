@@ -1,9 +1,15 @@
 import 'dotenv/config';
+import * as Sentry from '@sentry/node';
+import { initSentry, setupGlobalErrorHandlers } from '../shared/logger/sentry';
 import { Bot } from '../processes/bot';
 import { DonkiNotificationsService } from '../processes/notifications/donki-notifications';
 import { SubscriptionScheduler } from '../processes/schedulers/subscription.scheduler';
 import { closeDatabase } from '../shared/db/prisma';
 import { startWebhookServer } from './webhook.server';
+
+// Инициализация Sentry должна быть первой, до всех остальных операций
+initSentry();
+setupGlobalErrorHandlers();
 
 /**
  * Валидация обязательных переменных окружения
@@ -84,5 +90,8 @@ bot.start()
   })
   .catch((error) => {
     console.error('Ошибка запуска бота:', error);
-    process.exit(1);
+    Sentry.captureException(error);
+    Sentry.flush(2000).then(() => {
+      process.exit(1);
+    });
   }); 
