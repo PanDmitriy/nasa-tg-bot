@@ -1,6 +1,7 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { prisma } from '../shared/db/prisma';
+import { logger } from '../shared/logger';
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ export function createStripeWebhookHandler() {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    console.warn('STRIPE_WEBHOOK_SECRET is not set. Webhook signature verification will be disabled.');
+    logger.warn('STRIPE_WEBHOOK_SECRET is not set. Webhook signature verification будет отключена.');
   }
 
   router.post(
@@ -26,7 +27,7 @@ export function createStripeWebhookHandler() {
       const sig = req.headers['stripe-signature'];
 
       if (!sig) {
-        console.error('Missing stripe-signature header');
+        logger.error('Missing stripe-signature header');
         res.status(400).send('Missing stripe-signature header');
         return;
       }
@@ -40,11 +41,11 @@ export function createStripeWebhookHandler() {
         } else {
           // В режиме разработки без верификации (не рекомендуется для продакшена)
           event = JSON.parse(req.body.toString()) as Stripe.Event;
-          console.warn('Webhook signature verification is disabled. This should not be used in production.');
+          logger.warn('Webhook signature verification is disabled. This should not be used in production.');
         }
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
-        console.error('Webhook signature verification failed:', error);
+        logger.error('Webhook signature verification failed', error);
         res.status(400).send(`Webhook Error: ${error}`);
         return;
       }
@@ -64,7 +65,7 @@ export function createStripeWebhookHandler() {
 
         res.json({ received: true });
       } catch (error) {
-        console.error('Error processing webhook event:', error);
+        logger.error('Error processing webhook event', error);
         res.status(500).json({ error: 'Internal server error' });
       }
     }
@@ -81,14 +82,14 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   const telegramId = session.metadata?.telegramId || session.client_reference_id;
 
   if (!telegramId) {
-    console.error('Missing telegramId in checkout session:', session.id);
+    logger.error('Missing telegramId in checkout session', undefined, { sessionId: session.id });
     return;
   }
 
   // Получаем информацию о подписке
   const subscriptionId = session.subscription as string;
   if (!subscriptionId) {
-    console.error('Missing subscription ID in checkout session:', session.id);
+    logger.error('Missing subscription ID in checkout session', undefined, { sessionId: session.id });
     return;
   }
 
@@ -113,7 +114,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         until: currentPeriodEnd,
       },
     });
-    console.log(`Premium updated for telegramId: ${telegramId}, until: ${currentPeriodEnd}`);
+    logger.info('Premium updated', { telegramId, until: currentPeriodEnd });
   } else {
     // Создаем новую запись
     await prisma.premium.create({
@@ -123,7 +124,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         until: currentPeriodEnd,
       },
     });
-    console.log(`Premium activated for telegramId: ${telegramId}, until: ${currentPeriodEnd}`);
+    logger.info('Premium activated', { telegramId, until: currentPeriodEnd });
   }
 }
 
@@ -133,7 +134,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   // Находим Premium запись по customer ID (если храним его в metadata)
   // Или можно использовать другой способ связи
-  console.log(`Subscription deleted: ${subscription.id}`);
+  logger.info('Subscription deleted', { subscriptionId: subscription.id });
   
   // В реальном приложении нужно связать Stripe customer ID с telegramId
   // Для упрощения можно деактивировать все активные Premium записи
@@ -149,10 +150,16 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   // Обновляем Premium запись если подписка активна
   if (subscription.status === 'active') {
     // В реальном приложении нужно связать Stripe customer ID с telegramId
-    console.log(`Subscription updated: ${subscription.id}, period_end: ${currentPeriodEnd}`);
+    logger.info('Subscription updated', {
+      subscriptionId: subscription.id,
+      periodEnd: currentPeriodEnd,
+    });
   } else {
     // Деактивируем Premium если подписка неактивна
-    console.log(`Subscription status changed: ${subscription.status}`);
+    logger.info('Subscription status changed', {
+      subscriptionId: subscription.id,
+      status: subscription.status,
+    });
   }
 }
 

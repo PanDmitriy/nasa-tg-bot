@@ -2,6 +2,7 @@ import { Telegraf } from 'telegraf';
 import { config } from '../../app/config';
 import { BotContext, UserSession } from './types';
 import { handleTelegramError } from '../../shared/lib/errorHandler/errorHandler';
+import { logger } from '../../shared/logger';
 import { rateLimitMiddleware } from '../../shared/lib/rateLimiter';
 import { handleStart } from './handlers/start';
 import { handleAPOD } from './handlers/apod';
@@ -124,7 +125,7 @@ export class Bot {
     }
 
     if (cleanedCount > 0) {
-      console.log(`Очищено ${cleanedCount} устаревших сессий`);
+      logger.info('Очищено устаревших сессий', { cleanedCount });
     }
   }
 
@@ -298,13 +299,13 @@ export class Bot {
 
   public async start() {
     await this.bot.launch();
-    console.log('Bot started');
+    logger.info('Bot started');
   }
 
   public async stop() {
     this.stopSessionCleanup();
     await this.bot.stop();
-    console.log('Bot stopped');
+    logger.info('Bot stopped');
   }
 
   public getTelegram() {

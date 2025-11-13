@@ -4,6 +4,7 @@ import { SubscriptionService } from '../../features/subscriptions/subscription.s
 import { container } from '../../shared/di/container';
 import { prisma } from '../../shared/db/prisma';
 import { SubscriptionParams, EarthSubscriptionParams, DonkiSubscriptionParams } from '../../entities/subscription/types';
+import { logger } from '../../shared/logger';
 
 export class SubscriptionScheduler {
   private telegram: Telegram;
@@ -22,12 +23,12 @@ export class SubscriptionScheduler {
    */
   public start() {
     if (this.isRunning) {
-      console.log('SubscriptionScheduler уже запущен');
+      logger.info('SubscriptionScheduler уже запущен');
       return;
     }
 
     this.isRunning = true;
-    console.log('Запуск scheduler подписок...');
+    logger.info('Запуск scheduler подписок');
 
     // Запускаем cron каждую минуту для тестирования, или каждый час: '0 * * * *'
     // Для продакшена используем '0 * * * *' (каждый час в 0 минут)
@@ -38,7 +39,7 @@ export class SubscriptionScheduler {
     // Первая проверка сразу при запуске (опционально, для тестирования)
     // await this.processSubscriptions();
 
-    console.log('SubscriptionScheduler запущен. Проверка каждый час в 0 минут.');
+    logger.info('SubscriptionScheduler запущен', { schedule: '0 * * * *' });
   }
 
   /**
@@ -50,7 +51,7 @@ export class SubscriptionScheduler {
       this.cronJob = null;
     }
     this.isRunning = false;
-    console.log('SubscriptionScheduler остановлен');
+    logger.info('SubscriptionScheduler остановлен');
   }
 
   /**
@@ -59,7 +60,7 @@ export class SubscriptionScheduler {
   private async processSubscriptions() {
     try {
       const currentHourUtc = new Date().getUTCHours();
-      console.log(`[SubscriptionScheduler] Проверка подписок для часа ${currentHourUtc} UTC`);
+      logger.debug('Проверка подписок для текущего часа', { currentHourUtc });
 
       // Получаем все активные подписки
       const allSubscriptions = await this.subscriptionService.listAllEnabled();
@@ -69,16 +70,17 @@ export class SubscriptionScheduler {
         (sub) => sub.hourUtc === currentHourUtc
       );
 
-      console.log(
-        `[SubscriptionScheduler] Найдено ${subscriptionsForCurrentHour.length} подписок для часа ${currentHourUtc} UTC`
-      );
+      logger.debug('Количество подписок к отправке', {
+        currentHourUtc,
+        count: subscriptionsForCurrentHour.length,
+      });
 
       // Обрабатываем каждую подписку
       for (const subscription of subscriptionsForCurrentHour) {
         await this.sendSubscriptionNotification(subscription);
       }
     } catch (error) {
-      console.error('[SubscriptionScheduler] Ошибка при обработке подписок:', error);
+      logger.error('SubscriptionScheduler: ошибка при обработке подписок', error);
     }
   }
 
@@ -97,9 +99,10 @@ export class SubscriptionScheduler {
     let payload: { type: string } | null = null;
 
     try {
-      console.log(
-        `[SubscriptionScheduler] Отправка уведомления для подписки ${subscription.id} (${subscription.type})`
-      );
+      logger.debug('Отправка уведомления для подписки', {
+        subscriptionId: subscription.id,
+        type: subscription.type,
+      });
 
       switch (subscription.type) {
         case 'apod':
@@ -121,16 +124,17 @@ export class SubscriptionScheduler {
           throw new Error(`Неизвестный тип подписки: ${subscription.type}`);
       }
 
-      console.log(
-        `[SubscriptionScheduler] Уведомление успешно отправлено для подписки ${subscription.id}`
-      );
+      logger.info('Уведомление успешно отправлено', {
+        subscriptionId: subscription.id,
+        type: subscription.type,
+      });
     } catch (err) {
       status = 'failed';
       error = err instanceof Error ? err.message : String(err);
-      console.error(
-        `[SubscriptionScheduler] Ошибка при отправке уведомления для подписки ${subscription.id}:`,
-        error
-      );
+      logger.error('SubscriptionScheduler: ошибка при отправке уведомления', err, {
+        subscriptionId: subscription.id,
+        type: subscription.type,
+      });
     } finally {
       // Логируем результат в NotificationLog
       await this.logNotification(subscription, status, payload, error);
@@ -276,7 +280,9 @@ export class SubscriptionScheduler {
         },
       });
     } catch (err) {
-      console.error('[SubscriptionScheduler] Ошибка при логировании уведомления:', err);
+      logger.error('SubscriptionScheduler: ошибка при логировании уведомления', err, {
+        subscriptionId: subscription.id,
+      });
     }
   }
 }

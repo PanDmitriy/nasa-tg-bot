@@ -1,5 +1,6 @@
 import express from 'express';
 import { createStripeWebhookHandler } from './payments.webhook';
+import { logger } from '../shared/logger';
 
 /**
  * Запускает HTTP сервер для обработки Stripe webhooks
@@ -53,8 +54,10 @@ export function startWebhookServer(port: number = 3000) {
   });
 
   const server = app.listen(port, () => {
-    console.log(`Webhook server started on port ${port}`);
-    console.log(`Webhook endpoint: http://localhost:${port}/api/payments/webhook`);
+    logger.info('Webhook server started', { port });
+    logger.info('Webhook endpoint available', {
+      endpoint: `http://localhost:${port}/api/payments/webhook`,
+    });
   });
 
   return server;

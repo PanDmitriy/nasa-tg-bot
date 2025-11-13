@@ -2,6 +2,7 @@ import { Context, Markup } from 'telegraf';
 import { BotContext } from '../../processes/bot/types';
 import { SubscriptionService, SubscriptionType } from './subscription.service';
 import { getCallbackQueryData } from '../../shared/lib/telegramHelpers';
+import { logger } from '../../shared/logger';
 
 const subscriptionService = new SubscriptionService();
 
@@ -215,7 +216,7 @@ export async function handleSubscribeConfirm(ctx: Context & BotContext) {
     // Очищаем сессию
     delete ctx.session.subscribe;
   } catch (error) {
-    console.error('Subscribe Error:', error);
+    logger.error('Subscribe Error', error);
     await ctx.reply('❌ Произошла ошибка при создании подписки. Попробуйте позже.');
   }
 }

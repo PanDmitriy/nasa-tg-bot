@@ -2,6 +2,7 @@ import { Context, Markup } from 'telegraf';
 import { BotContext } from '../../processes/bot/types';
 import { SubscriptionService } from './subscription.service';
 import { getCallbackQueryData } from '../../shared/lib/telegramHelpers';
+import { logger } from '../../shared/logger';
 
 const subscriptionService = new SubscriptionService();
 
@@ -67,7 +68,7 @@ export async function handleUnsubscribe(ctx: Context & BotContext) {
 
     await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
   } catch (error) {
-    console.error('Unsubscribe Error:', error);
+    logger.error('Unsubscribe Error', error);
     await ctx.reply('❌ Произошла ошибка при получении списка подписок. Попробуйте позже.');
   }
 }
@@ -131,9 +132,8 @@ export async function handleUnsubscribeItem(ctx: Context & BotContext) {
       await ctx.reply(message, { parse_mode: 'HTML' });
     }
   } catch (error) {
-    console.error('Unsubscribe Item Error:', error);
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    logger.error('Unsubscribe Item Error', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     await ctx.reply(`❌ Ошибка при отключении подписки: ${errorMessage}`);
   }
 }

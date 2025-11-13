@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { logger } from '../../shared/logger';
 
 const envSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(1, 'TELEGRAM_BOT_TOKEN is required'),
@@ -19,9 +20,12 @@ export function validateEnv(): Env {
     return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('Ошибки конфигурации:');
+      logger.error('Ошибки конфигурации');
       error.errors.forEach((err) => {
-        console.error(`  - ${err.path.join('.')}: ${err.message}`);
+        logger.error('Конфигурация: некорректное значение', undefined, {
+          path: err.path.join('.'),
+          message: err.message,
+        });
       });
     }
     process.exit(1);

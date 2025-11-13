@@ -3,6 +3,7 @@ import { BotContext } from '../types';
 import { NasaImage } from '../../../features/images/api';
 import { container } from '../../../shared/di/container';
 import { getCallbackQueryData } from '../../../shared/lib/telegramHelpers';
+import { logger } from '../../../shared/logger';
 
 
 /**
@@ -95,7 +96,7 @@ export async function handleImageTopic(ctx: Context & BotContext) {
     await showImage(ctx, images[0], 0, images.length, topic.name);
     try { await ctx.deleteMessage(loading.message_id); } catch {}
   } catch (error) {
-    console.error('Images Error:', error);
+    logger.error('Images Error', error);
     await ctx.reply(
       '❌ Произошла ошибка при поиске изображений. Попробуйте позже.',
       Markup.inlineKeyboard([
@@ -138,7 +139,7 @@ async function handleImageSearch(ctx: Context & BotContext, query: string) {
     await showImage(ctx, images[0], 0, images.length, query);
     try { await ctx.deleteMessage(loading.message_id); } catch {}
   } catch (error) {
-    console.error('Image Search Error:', error);
+    logger.error('Image Search Error', error);
     await ctx.reply('❌ Произошла ошибка при поиске изображений. Попробуйте позже.');
   }
 }
@@ -192,7 +193,7 @@ async function showImage(
       );
       return;
     } catch (error) {
-      console.error('Error editing message:', error);
+      logger.error('Error editing message', error);
       // Если не удалось отредактировать (например, изменился тип медиа), удаляем и отправляем заново
       try {
         await ctx.deleteMessage(editMessageId);
@@ -209,7 +210,7 @@ async function showImage(
       ...keyboard,
     });
   } catch (error) {
-    console.error('Error sending photo:', error);
+    logger.error('Error sending photo', error);
     // Если не удалось отправить фото, отправляем как ссылку
     await ctx.reply(
       `🖼️ <b>${image.title}</b>\n\n` +
@@ -306,7 +307,7 @@ export async function handleImagesCustomSearch(ctx: Context & BotContext) {
       { parse_mode: 'HTML' }
     );
   } catch (error) {
-    console.error('Custom search error:', error);
+    logger.error('Custom search error', error);
   }
 }
 

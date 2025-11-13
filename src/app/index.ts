@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import * as Sentry from '@sentry/node';
 import { initSentry, setupGlobalErrorHandlers } from '../shared/logger/sentry';
+import { logger } from '../shared/logger';
 import { Bot } from '../processes/bot';
 import { DonkiNotificationsService } from '../processes/notifications/donki-notifications';
 import { SubscriptionScheduler } from '../processes/schedulers/subscription.scheduler';
@@ -63,12 +64,11 @@ bot.start()
     if (process.env.STRIPE_SECRET_KEY) {
       webhookServer = startWebhookServer(webhookPort);
     } else {
-      console.log('Stripe webhook server is disabled (STRIPE_SECRET_KEY not set)');
+      logger.info('Stripe webhook server is disabled (STRIPE_SECRET_KEY not set)');
     }
   })
   .catch((error) => {
-    console.error('Ошибка запуска бота:', error);
-    Sentry.captureException(error);
+    logger.error('Ошибка запуска бота', error);
     Sentry.flush(2000).then(() => {
       process.exit(1);
     });

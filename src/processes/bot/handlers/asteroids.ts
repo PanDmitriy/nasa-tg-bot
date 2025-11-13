@@ -1,6 +1,7 @@
 import { Context } from 'telegraf';
 import { BotContext } from '../types';
 import { container } from '../../../shared/di/container';
+import { logger } from '../../../shared/logger';
 
 export async function handleAsteroids(ctx: Context & BotContext) {
   try {
@@ -48,7 +49,7 @@ export async function handleAsteroids(ctx: Context & BotContext) {
       }
     }
   } catch (error) {
-    console.error('Asteroids Error:', error);
+    logger.error('Asteroids Error', error);
     // Ошибки обрабатываются глобальным middleware
     throw error;
   }

@@ -5,6 +5,7 @@ import { subscriptionsRepository } from '../../shared/db/repositories/subscripti
 import { CMEAlertLevel } from '../bot/types';
 import { formatCMESimple, formatNotificationSimple, formatWSAEnlilSimple } from '../../features/donki/formatters';
 import { config } from '../../app/config';
+import { logger } from '../../shared/logger';
 
 interface LastCheckedEvents {
   cme: Set<string>; // activityID
@@ -35,18 +36,18 @@ export class DonkiNotificationsService {
    */
   public async start(): Promise<void> {
     if (this.isRunning) {
-      console.log('DonkiNotificationsService уже запущен');
+      logger.info('DonkiNotificationsService уже запущен');
       return;
     }
 
     this.isRunning = true;
-    console.log('Запуск сервиса уведомлений DONKI...');
+    logger.info('Запуск сервиса уведомлений DONKI...');
 
     // Первая проверка сразу при запуске
     try {
       await this.checkNewEvents();
     } catch (error) {
-      console.error('Ошибка при первой проверке событий:', error);
+      logger.error('Ошибка при первой проверке событий', error);
     }
 
     // Затем периодические проверки
@@ -54,11 +55,13 @@ export class DonkiNotificationsService {
       try {
         await this.checkNewEvents();
       } catch (error) {
-        console.error('Ошибка при проверке новых событий:', error);
+        logger.error('Ошибка при проверке новых событий', error);
       }
     }, this.CHECK_INTERVAL_MS);
 
-    console.log(`Сервис уведомлений DONKI запущен. Проверка каждые ${this.CHECK_INTERVAL_MS / 1000 / 60} минут.`);
+    logger.info('Сервис уведомлений DONKI запущен', {
+      intervalMinutes: this.CHECK_INTERVAL_MS / 1000 / 60,
+    });
   }
 
   /**
@@ -70,7 +73,7 @@ export class DonkiNotificationsService {
       this.checkInterval = null;
     }
     this.isRunning = false;
-    console.log('Сервис уведомлений DONKI остановлен');
+    logger.info('Сервис уведомлений DONKI остановлен');
   }
 
   /**
@@ -78,7 +81,7 @@ export class DonkiNotificationsService {
    */
   private async checkNewEvents() {
     try {
-      console.log('Проверка новых событий DONKI...');
+      logger.debug('Проверка новых событий DONKI начата');
 
       // Проверяем события за последние 24 часа
       const endDate = new Date();
@@ -94,9 +97,9 @@ export class DonkiNotificationsService {
       // Проверяем симуляции WSA-ENLIL
       await this.checkWSAEnlilEvents(startDate, endDate);
 
-      console.log('Проверка новых событий завершена');
+      logger.debug('Проверка новых событий DONKI завершена');
     } catch (error) {
-      console.error('Ошибка при проверке новых событий:', error);
+      logger.error('Ошибка при проверке новых событий', error);
     }
   }
 
@@ -124,17 +127,20 @@ export class DonkiNotificationsService {
 
         if (subscribers.length > 0) {
           const message = `🔔 <b>Новое событие CME</b>\n\n${formatCMESimple(cme)}`;
-          
+
           // Отправляем уведомления всем подписчикам
           await this.sendNotifications(subscribers, message);
-          console.log(`Отправлено ${subscribers.length} уведомлений о CME ${cme.activityID}`);
+          logger.info('Отправлены уведомления о CME событии', {
+            count: subscribers.length,
+            activityId: cme.activityID,
+          });
         }
 
         // Сохраняем ID события как проверенное
         this.lastCheckedEvents.cme.add(cme.activityID);
       }
     } catch (error) {
-      console.error('Ошибка при проверке CME событий:', error);
+      logger.error('Ошибка при проверке CME событий', error);
     }
   }
 
@@ -156,17 +162,20 @@ export class DonkiNotificationsService {
 
         if (subscribers.length > 0) {
           const message = `🔔 <b>Новое уведомление DONKI</b>\n\n${formatNotificationSimple(notification)}`;
-          
+
           // Отправляем уведомления всем подписчикам
           await this.sendNotifications(subscribers, message);
-          console.log(`Отправлено ${subscribers.length} уведомлений о DONKI notification ${notification.messageID}`);
+          logger.info('Отправлены уведомления DONKI notification', {
+            count: subscribers.length,
+            messageId: notification.messageID,
+          });
         }
 
         // Сохраняем ID уведомления как проверенное
         this.lastCheckedEvents.notifications.add(notification.messageID);
       }
     } catch (error) {
-      console.error('Ошибка при проверке уведомлений DONKI:', error);
+      logger.error('Ошибка при проверке уведомлений DONKI', error);
     }
   }
 
@@ -188,17 +197,20 @@ export class DonkiNotificationsService {
 
         if (subscribers.length > 0) {
           const message = `🔔 <b>Новая симуляция WSA-ENLIL</b>\n\n${formatWSAEnlilSimple(sim)}`;
-          
+
           // Отправляем уведомления всем подписчикам
           await this.sendNotifications(subscribers, message);
-          console.log(`Отправлено ${subscribers.length} уведомлений о WSA-ENLIL simulation ${sim.simulationID}`);
+          logger.info('Отправлены уведомления о симуляции WSA-ENLIL', {
+            count: subscribers.length,
+            simulationId: sim.simulationID,
+          });
         }
 
         // Сохраняем ID симуляции как проверенное
         this.lastCheckedEvents.wsaenlil.add(sim.simulationID);
       }
     } catch (error) {
-      console.error('Ошибка при проверке симуляций WSA-ENLIL:', error);
+      logger.error('Ошибка при проверке симуляций WSA-ENLIL', error);
     }
   }
 
@@ -228,12 +240,12 @@ export class DonkiNotificationsService {
         if (error && typeof error === 'object' && 'response' in error) {
           const telegramError = error as { response?: { error_code?: number } };
           if (telegramError.response?.error_code === 403) {
-            console.log(`Пользователь ${userId} заблокировал бота`);
+            logger.warn('Пользователь заблокировал бота', { userId });
           } else {
-            console.error(`Ошибка при отправке уведомления пользователю ${userId}:`, error);
+            logger.error('Ошибка при отправке уведомления пользователю', error, { userId });
           }
         } else {
-          console.error(`Ошибка при отправке уведомления пользователю ${userId}:`, error);
+          logger.error('Ошибка при отправке уведомления пользователю', error, { userId });
         }
       }
     });

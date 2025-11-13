@@ -2,6 +2,7 @@ import { Context, Markup } from 'telegraf';
 import { BotContext } from '../types';
 import { container } from '../../../shared/di/container';
 import { getCallbackQueryData, getMessageId } from '../../../shared/lib/telegramHelpers';
+import { logger } from '../../../shared/logger';
 
 export async function handleEarth(ctx: Context & BotContext) {
   try {
@@ -21,7 +22,7 @@ export async function handleEarth(ctx: Context & BotContext) {
     });
     try { await ctx.deleteMessage(loading.message_id); } catch {}
   } catch (error) {
-    console.error('Earth Error:', error);
+    logger.error('Earth Error', error);
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.includes('NASA API Error: 503') || msg.includes('NASA API Error: 502') || msg.includes('NASA API Error: 504')) {
       await ctx.reply('⚠️ Сервис NASA EPIC временно недоступен (5xx). Попробуйте позже.', Markup.inlineKeyboard([
@@ -67,7 +68,7 @@ export async function handleEarthType(ctx: Context & BotContext) {
       ])
     });
   } catch (error) {
-    console.error('Earth Type Error:', error);
+    logger.error('Earth Type Error', error);
     await ctx.reply('❌ Не удалось получить снимок. Попробуйте позже.', Markup.inlineKeyboard([
       Markup.button.callback('🔄 Повторить', 'earth_retry')
     ]));

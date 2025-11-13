@@ -2,6 +2,7 @@ import { Context } from 'telegraf';
 import { BotContext, CMEAlertLevel } from '../types';
 import { DonkiCME, DonkiFlare, DonkiSEP, DonkiGST, DonkiIPS, DonkiNotification, DonkiWSAEnlil } from '../../../features/donki/api';
 import { container } from '../../../shared/di/container';
+import { logger } from '../../../shared/logger';
 import {
   formatCME,
   formatFlare,
@@ -319,7 +320,7 @@ ${modeText} (можно переключить после выбора собы�
       reply_markup: menu,
     });
   } catch (error) {
-    console.error('DONKI Error:', error);
+    logger.error('DONKI Error', error, { handler: 'handleDonki' });
     await ctx.reply('❌ Произошла ошибка при загрузке меню DONKI.');
   }
 }
@@ -352,7 +353,7 @@ ${modeText} (можно переключить после выбора собы�
       reply_markup: menu,
     });
   } catch (error) {
-    console.error('DONKI Menu Error:', error);
+    logger.error('DONKI Menu Error', error, { handler: 'handleDonkiMenu' });
   }
 }
 
@@ -362,7 +363,7 @@ export async function handleDonkiCME(ctx: Context & BotContext) {
       reply_markup: createDateMenu('cme'),
     });
   } catch (error) {
-    console.error('DONKI CME Error:', error);
+    logger.error('DONKI CME Error', error, { handler: 'handleDonkiCME' });
   }
 }
 
@@ -398,7 +399,7 @@ export async function handleDonkiCMEData(ctx: Context & BotContext, days: number
 
     ctx.session.donkiData = { type: 'cme', items: cmes, currentIndex: 0 };
   } catch (error) {
-    console.error('DONKI CME Data Error:', error);
+    logger.error('DONKI CME Data Error', error, { handler: 'handleDonkiCMEData', days });
     await ctx.editMessageText(
       '❌ Ошибка при получении данных о CME. Попробуйте позже.',
       { reply_markup: { inline_keyboard: [[{ text: '🔙 Назад', callback_data: 'donki_menu' }]] } }
@@ -412,7 +413,7 @@ export async function handleDonkiFlares(ctx: Context & BotContext) {
       reply_markup: createDateMenu('flares'),
     });
   } catch (error) {
-    console.error('DONKI Flares Error:', error);
+    logger.error('DONKI Flares Error', error, { handler: 'handleDonkiFlares' });
   }
 }
 
@@ -424,7 +425,7 @@ export async function handleDonkiFlaresPeriod(ctx: Context & BotContext, days: n
     });
     ctx.session.donkiFlaresPeriod = days;
   } catch (error) {
-    console.error('DONKI Flares Period Error:', error);
+    logger.error('DONKI Flares Period Error', error, { handler: 'handleDonkiFlaresPeriod' });
   }
 }
 
@@ -461,7 +462,7 @@ export async function handleDonkiFlaresData(ctx: Context & BotContext, classType
 
     ctx.session.donkiData = { type: 'flares', items: flares, currentIndex: 0 };
   } catch (error) {
-    console.error('DONKI Flares Data Error:', error);
+    logger.error('DONKI Flares Data Error', error, { handler: 'handleDonkiFlaresData', classType, period });
     await ctx.editMessageText(
       '❌ Ошибка при получении данных о вспышках. Попробуйте позже.',
       { reply_markup: { inline_keyboard: [[{ text: '🔙 Назад', callback_data: 'donki_menu' }]] } }
@@ -475,7 +476,7 @@ export async function handleDonkiSEP(ctx: Context & BotContext) {
       reply_markup: createDateMenu('sep'),
     });
   } catch (error) {
-    console.error('DONKI SEP Error:', error);
+    logger.error('DONKI SEP Error', error, { handler: 'handleDonkiSEP' });
   }
 }
 
@@ -511,7 +512,7 @@ export async function handleDonkiSEPData(ctx: Context & BotContext, days: number
 
     ctx.session.donkiData = { type: 'sep', items: seps, currentIndex: 0 };
   } catch (error) {
-    console.error('DONKI SEP Data Error:', error);
+    logger.error('DONKI SEP Data Error', error, { handler: 'handleDonkiSEPData', days });
     await ctx.editMessageText(
       '❌ Ошибка при получении данных о SEP. Попробуйте позже.',
       { reply_markup: { inline_keyboard: [[{ text: '🔙 Назад', callback_data: 'donki_menu' }]] } }
@@ -525,7 +526,7 @@ export async function handleDonkiGST(ctx: Context & BotContext) {
       reply_markup: createDateMenu('gst'),
     });
   } catch (error) {
-    console.error('DONKI GST Error:', error);
+    logger.error('DONKI GST Error', error, { handler: 'handleDonkiGST' });
   }
 }
 
@@ -561,7 +562,7 @@ export async function handleDonkiGSTData(ctx: Context & BotContext, days: number
 
     ctx.session.donkiData = { type: 'gst', items: gsts, currentIndex: 0 };
   } catch (error) {
-    console.error('DONKI GST Data Error:', error);
+    logger.error('DONKI GST Data Error', error, { handler: 'handleDonkiGSTData', days });
     await ctx.editMessageText(
       '❌ Ошибка при получении данных о геомагнитных бурях. Попробуйте позже.',
       { reply_markup: { inline_keyboard: [[{ text: '🔙 Назад', callback_data: 'donki_menu' }]] } }
@@ -575,7 +576,7 @@ export async function handleDonkiIPS(ctx: Context & BotContext) {
       reply_markup: createDateMenu('ips'),
     });
   } catch (error) {
-    console.error('DONKI IPS Error:', error);
+    logger.error('DONKI IPS Error', error, { handler: 'handleDonkiIPS' });
   }
 }
 
@@ -611,7 +612,7 @@ export async function handleDonkiIPSData(ctx: Context & BotContext, days: number
 
     ctx.session.donkiData = { type: 'ips', items: ipss, currentIndex: 0 };
   } catch (error) {
-    console.error('DONKI IPS Data Error:', error);
+    logger.error('DONKI IPS Data Error', error, { handler: 'handleDonkiIPSData', days });
     await ctx.editMessageText(
       '❌ Ошибка при получении данных о межпланетных ударах. Попробуйте позже.',
       { reply_markup: { inline_keyboard: [[{ text: '🔙 Назад', callback_data: 'donki_menu' }]] } }
@@ -651,7 +652,7 @@ export async function handleDonkiNotifications(ctx: Context & BotContext) {
 
     ctx.session.donkiData = { type: 'notifications', items: notifications, currentIndex: 0 };
   } catch (error) {
-    console.error('DONKI Notifications Error:', error);
+    logger.error('DONKI Notifications Error', error, { handler: 'handleDonkiNotifications' });
     await ctx.reply(
       '❌ Ошибка при получении уведомлений. Попробуйте позже.',
       { reply_markup: { inline_keyboard: [[{ text: '🔙 Назад', callback_data: 'donki_menu' }]] } }
@@ -691,7 +692,7 @@ export async function handleDonkiWSAEnlil(ctx: Context & BotContext) {
 
     ctx.session.donkiData = { type: 'wsaenlil', items: sims, currentIndex: 0 };
   } catch (error) {
-    console.error('DONKI WSAEnlil Error:', error);
+    logger.error('DONKI WSAEnlil Error', error, { handler: 'handleDonkiWSAEnlil' });
     await ctx.editMessageText(
       '❌ Ошибка при получении симуляций. Попробуйте позже.',
       { reply_markup: { inline_keyboard: [[{ text: '🔙 Назад', callback_data: 'donki_menu' }]] } }
@@ -760,7 +761,7 @@ export async function handleDonkiItemNavigation(ctx: Context & BotContext, data:
       await ctx.answerCbQuery('Вы уже на этом элементе');
       return;
     }
-    console.error('DONKI Navigation Error:', error);
+    logger.error('DONKI Navigation Error', error, { handler: 'handleDonkiItemNavigation', data });
     await ctx.answerCbQuery('Ошибка навигации');
   }
 }
@@ -769,7 +770,7 @@ export async function handleDonkiClose(ctx: Context & BotContext) {
   try {
     await ctx.deleteMessage();
   } catch (error) {
-    console.error('DONKI Close Error:', error);
+    logger.error('DONKI Close Error', error, { handler: 'handleDonkiClose' });
   }
 }
 
@@ -799,7 +800,7 @@ export async function handleDonkiToggleMode(ctx: Context & BotContext) {
 
     await ctx.answerCbQuery(isSimpleMode ? 'Переключено на простой режим' : 'Переключено на подробный режим');
   } catch (error) {
-    console.error('DONKI Toggle Mode Error:', error);
+    logger.error('DONKI Toggle Mode Error', error, { handler: 'handleDonkiToggleMode' });
     await ctx.answerCbQuery('Ошибка переключения режима');
   }
 }
@@ -846,7 +847,7 @@ ${modeText} (можно переключить после выбора собы�
 
     await ctx.answerCbQuery(`Режим изменен на: ${modeText}`);
   } catch (error) {
-    console.error('DONKI Set Mode Error:', error);
+    logger.error('DONKI Set Mode Error', error, { handler: 'handleDonkiSetMode' });
     await ctx.answerCbQuery('Ошибка изменения режима');
   }
 }
@@ -875,7 +876,7 @@ export async function handleDonkiSubscriptions(ctx: Context & BotContext) {
       reply_markup: menu,
     });
   } catch (error) {
-    console.error('DONKI Subscriptions Error:', error);
+    logger.error('DONKI Subscriptions Error', error, { handler: 'handleDonkiSubscriptions' });
     await ctx.answerCbQuery('Ошибка загрузки подписок');
   }
 }
@@ -908,7 +909,7 @@ export async function handleDonkiCMESubscriptionMenu(ctx: Context & BotContext) 
       reply_markup: createCMESubscriptionMenu(currentLevel),
     });
   } catch (error) {
-    console.error('DONKI CME Subscription Menu Error:', error);
+    logger.error('DONKI CME Subscription Menu Error', error, { handler: 'handleDonkiCMESubscriptionMenu' });
     await ctx.answerCbQuery('Ошибка загрузки меню подписки');
   }
 }
@@ -956,7 +957,7 @@ export async function handleDonkiCMESubscription(ctx: Context & BotContext, leve
       reply_markup: createCMESubscriptionMenu(currentLevel),
     });
   } catch (error) {
-    console.error('DONKI CME Subscription Error:', error);
+    logger.error('DONKI CME Subscription Error', error, { handler: 'handleDonkiCMESubscription', level });
     await ctx.answerCbQuery('Ошибка изменения подписки');
   }
 }
@@ -997,7 +998,7 @@ export async function handleDonkiNotificationsSubscription(ctx: Context & BotCon
       reply_markup: menu,
     });
   } catch (error) {
-    console.error('DONKI Notifications Subscription Error:', error);
+    logger.error('DONKI Notifications Subscription Error', error, { handler: 'handleDonkiNotificationsSubscription' });
     await ctx.answerCbQuery('Ошибка изменения подписки');
   }
 }
@@ -1038,7 +1039,7 @@ export async function handleDonkiWSAEnlilSubscription(ctx: Context & BotContext)
       reply_markup: menu,
     });
   } catch (error) {
-    console.error('DONKI WSAEnlil Subscription Error:', error);
+    logger.error('DONKI WSAEnlil Subscription Error', error, { handler: 'handleDonkiWSAEnlilSubscription' });
     await ctx.answerCbQuery('Ошибка изменения подписки');
   }
 }
