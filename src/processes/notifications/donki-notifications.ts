@@ -1,7 +1,7 @@
 import { Telegram } from 'telegraf';
 import { DonkiCME } from '../../features/donki/api';
 import { container } from '../../shared/di/container';
-import { subscriptionsRepository } from '../../shared/db/repositories/subscriptions';
+import { subscriptionsRepository, EventType } from '../../shared/db/repositories/subscriptions';
 import { CMEAlertLevel } from '../bot/types';
 import { formatCMESimple, formatNotificationSimple, formatWSAEnlilSimple } from '../../features/donki/formatters';
 import { config } from '../../app/config';
@@ -236,13 +236,18 @@ export class DonkiNotificationsService {
           parse_mode: 'HTML',
         });
       } catch (error: unknown) {
-        // Игнорируем ошибки, связанные с блокировкой бота пользователем
-        if (error && typeof error === 'object' && 'response' in error) {
-          const telegramError = error as { response?: { error_code?: number } };
-          if (telegramError.response?.error_code === 403) {
-            logger.warn('Пользователь заблокировал бота', { userId });
-          } else {
-            logger.error('Ошибка при отправке уведомления пользователю', error, { userId });
+        // Обрабатываем ошибки, связанные с блокировкой бота пользователем
+        if (this.isBotBlockedError(error)) {
+          logger.warn('Пользователь заблокировал бота, отключаем подписки', { userId });
+          // Отключаем все подписки пользователя
+          try {
+            const subscriptions = await subscriptionsRepository.getUserSubscriptions(userId);
+            for (const sub of subscriptions) {
+              await subscriptionsRepository.setSubscription(userId, sub.eventType as EventType, null);
+            }
+            logger.info('Подписки пользователя отключены из-за блокировки бота', { userId });
+          } catch (disableError) {
+            logger.error('Ошибка при отключении подписок пользователя', disableError, { userId });
           }
         } else {
           logger.error('Ошибка при отправке уведомления пользователю', error, { userId });
@@ -251,6 +256,17 @@ export class DonkiNotificationsService {
     });
 
     await Promise.allSettled(promises);
+  }
+
+  /**
+   * Проверяет, является ли ошибка ошибкой блокировки бота (403)
+   */
+  private isBotBlockedError(error: unknown): boolean {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const telegramError = error as { response?: { error_code?: number } };
+      return telegramError.response?.error_code === 403;
+    }
+    return false;
   }
 
   /**
