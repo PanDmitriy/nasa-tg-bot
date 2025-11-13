@@ -29,6 +29,9 @@ Telegram бот для получения информации о космосе
 - **Axios** - HTTP клиент с автоматическими retry и обработкой ошибок
 - **Prisma** - ORM для работы с базой данных
 - **SQLite** - База данных для хранения подписок
+- **Sentry** - Мониторинг ошибок и централизованное логирование
+- **Stripe** - Платежная система для Premium подписок
+- **Express** - HTTP сервер для Stripe webhooks
 - **ESLint & Prettier** - Линтинг и форматирование кода
 - **Docker** - Контейнеризация приложения
 
@@ -72,7 +75,12 @@ cd nasa-tg-bot
 npm install
 ```
 
-3. Создайте файл `.env` в корне проекта и добавьте следующие переменные окружения:
+3. Создайте файл `.env` в корне проекта на основе `.env.example`:
+```bash
+cp .env.example .env
+```
+
+Затем отредактируйте `.env` и заполните обязательные переменные:
 ```env
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 NASA_API_KEY=your_nasa_api_key
@@ -80,11 +88,26 @@ DATABASE_URL=file:./data/bot.db
 NODE_ENV=development
 ```
 
-Где:
+### Переменные окружения
+
+#### Обязательные переменные:
 - `TELEGRAM_BOT_TOKEN` - токен вашего Telegram бота (получить у [@BotFather](https://t.me/BotFather))
 - `NASA_API_KEY` - API ключ NASA (получить на [api.nasa.gov](https://api.nasa.gov/))
-- `DATABASE_URL` - путь к файлу базы данных SQLite
-- `NODE_ENV` - окружение (development/production)
+- `DATABASE_URL` - путь к файлу базы данных SQLite (по умолчанию `file:./data/bot.db`)
+
+#### Опциональные переменные:
+- `NODE_ENV` - окружение (`development`/`production`), по умолчанию `development`
+
+#### Sentry (мониторинг ошибок):
+- `SENTRY_DSN` - DSN для Sentry (опционально, если не установлен - Sentry отключен). Получить на [sentry.io](https://sentry.io/)
+
+#### Stripe (Premium подписка):
+- `STRIPE_SECRET_KEY` - секретный ключ Stripe для включения Premium функций. Получить на [dashboard.stripe.com](https://dashboard.stripe.com/apikeys)
+- `STRIPE_WEBHOOK_SECRET` - секрет webhook для верификации Stripe событий (рекомендуется для production). Получить на [dashboard.stripe.com/webhooks](https://dashboard.stripe.com/webhooks)
+- `DOMAIN_URL` - домен для Stripe Checkout (по умолчанию `http://localhost:3000`). Используется для redirect URL после оплаты
+- `WEBHOOK_PORT` - порт для webhook сервера Stripe (по умолчанию `3000`). Webhook сервер запускается только если установлен `STRIPE_SECRET_KEY`
+
+> **Примечание:** Redis в текущей версии не используется. Все данные хранятся в SQLite базе данных.
 
 4. Инициализируйте базу данных:
 ```bash
@@ -125,6 +148,7 @@ docker run -d --env-file .env nasa-tg-bot
   - Просмотр событий космической погоды (CME, вспышки, SEP, GST, IPS)
   - Подписки на уведомления о событиях
   - Простой и подробный режимы отображения
+- `/premium` - Premium подписка (требует настройки Stripe)
 - `/help` - Показать справку по командам
 
 ## Структура проекта
@@ -213,6 +237,62 @@ src/
 - CME события (с фильтрацией по уровню опасности)
 - Уведомления DONKI
 - Симуляции WSA-ENLIL
+
+### Настройка Sentry (мониторинг ошибок)
+
+Sentry интегрирован для централизованного логирования ошибок. Для включения:
+
+1. Создайте проект на [sentry.io](https://sentry.io/)
+2. Получите DSN вашего проекта
+3. Добавьте в `.env`:
+   ```env
+   SENTRY_DSN=https://your-dsn@sentry.io/project-id
+   ```
+
+Sentry автоматически:
+- Отслеживает необработанные исключения (`uncaughtException`)
+- Отслеживает отклоненные промисы (`unhandledRejection`)
+- Логирует ошибки из обработчиков Telegram с контекстом (chatId, handler, updateType)
+- Отправляет ошибки при запуске бота
+
+Если `SENTRY_DSN` не установлен, Sentry отключается и бот работает без мониторинга.
+
+### Настройка Stripe (Premium подписка)
+
+Для включения Premium функций и оплаты через Stripe:
+
+1. Создайте аккаунт на [stripe.com](https://stripe.com/)
+2. Получите секретный ключ API на [dashboard.stripe.com/apikeys](https://dashboard.stripe.com/apikeys)
+3. Добавьте в `.env`:
+   ```env
+   STRIPE_SECRET_KEY=sk_test_...
+   DOMAIN_URL=https://your-domain.com  # или http://localhost:3000 для разработки
+   ```
+
+#### Настройка Webhook (для production)
+
+Для автоматической активации Premium подписок после оплаты:
+
+1. Создайте webhook endpoint на [dashboard.stripe.com/webhooks](https://dashboard.stripe.com/webhooks)
+2. Укажите URL: `https://your-domain.com/api/payments/webhook`
+3. Выберите события:
+   - `checkout.session.completed`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+4. Получите Webhook Signing Secret и добавьте в `.env`:
+   ```env
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+
+5. Настройте порт webhook сервера (опционально):
+   ```env
+   WEBHOOK_PORT=3000
+   ```
+
+**Важно:**
+- Webhook сервер запускается автоматически при наличии `STRIPE_SECRET_KEY`
+- В development режиме верификация подписи отключена (не рекомендуется для production)
+- Убедитесь, что `DOMAIN_URL` доступен из интернета для работы webhook
 
 ### Добавление новой функции
 

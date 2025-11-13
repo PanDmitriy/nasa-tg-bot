@@ -10,6 +10,9 @@ export const developmentConfig: Config = {
       { command: 'asteroids', description: 'Информация об астероидах' },
       { command: 'images', description: 'Галерея изображений NASA' },
       { command: 'donki', description: 'Космическая погода (DONKI)' },
+      { command: 'subscribe', description: 'Подписка на Daily APOD' },
+      { command: 'unsubscribe', description: 'Отключить подписки' },
+      { command: 'premium', description: 'Premium подписка' },
       { command: 'help', description: 'Помощь' },
     ]
   },

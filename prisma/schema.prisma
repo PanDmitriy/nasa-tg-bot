@@ -36,3 +36,50 @@ model DonkiSubscription {
   @@index([eventType])
   @@map("donki_subscriptions")
 }
+
+model Subscription {
+  id         Int      @id @default(autoincrement())
+  telegramId String
+  chatId     String
+  type       String   // 'apod' | 'earth' | 'donki'
+  params     Json?
+  hourUtc    Int      // 0..23
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([chatId])
+  @@index([type])
+  @@index([enabled])
+  @@map("subscriptions")
+}
+
+model NotificationLog {
+  id             Int       @id @default(autoincrement())
+  subscriptionId Int?      @map("subscription_id")
+  telegramId      String?
+  chatId         String?
+  type           String
+  status         String    // 'sent' | 'failed'
+  payload        Json?
+  error          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([subscriptionId])
+  @@index([chatId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notification_logs")
+}
+
+model Premium {
+  id         Int      @id @default(autoincrement())
+  telegramId String
+  active     Boolean  @default(true)
+  until      DateTime
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([telegramId])
+  @@index([active])
+  @@map("premiums")
+}

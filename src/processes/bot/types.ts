@@ -30,6 +30,11 @@ export interface UserSession {
   donkiFlaresPeriod?: number;
   donkiSimpleMode?: boolean; // true = простой режим, false/undefined = подробный
   donkiSubscriptions?: DonkiSubscriptions;
+  subscribe?: {
+    step?: 'type' | 'time' | 'confirm';
+    type?: 'apod' | 'earth' | 'donki';
+    hourUtc?: number;
+  };
 }
 
 export interface BotContext extends Context {
