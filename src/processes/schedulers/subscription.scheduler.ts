@@ -3,6 +3,7 @@ import { Telegram } from 'telegraf';
 import { SubscriptionService } from '../../features/subscriptions/subscription.service';
 import { container } from '../../shared/di/container';
 import { prisma } from '../../shared/db/prisma';
+import { SubscriptionParams, EarthSubscriptionParams, DonkiSubscriptionParams } from '../../entities/subscription/types';
 
 export class SubscriptionScheduler {
   private telegram: Telegram;
@@ -88,12 +89,12 @@ export class SubscriptionScheduler {
     id: number;
     telegramId: string;
     chatId: string;
-    type: string;
-    params: any;
+    type: 'apod' | 'earth' | 'donki';
+    params: SubscriptionParams;
   }) {
     let status: 'sent' | 'failed' = 'sent';
     let error: string | null = null;
-    let payload: any = null;
+    let payload: { type: string } | null = null;
 
     try {
       console.log(
@@ -165,10 +166,11 @@ export class SubscriptionScheduler {
   private async sendEarthNotification(subscription: {
     id: number;
     chatId: string;
-    params: any;
+    params: SubscriptionParams;
   }) {
     // Получаем тип из params или используем 'natural' по умолчанию
-    const type = subscription.params?.type || 'natural';
+    const earthParams = subscription.params as EarthSubscriptionParams | null;
+    const type = earthParams?.type || 'natural';
     const image = await container.earthApi.getLatestEarthImageWithFallback(
       type as 'natural' | 'enhanced'
     );
@@ -191,7 +193,7 @@ export class SubscriptionScheduler {
   private async sendDonkiNotification(subscription: {
     id: number;
     chatId: string;
-    params: any;
+    params: SubscriptionParams;
   }) {
     // Получаем последние события DONKI за последние 24 часа
     const endDate = new Date();
@@ -199,7 +201,8 @@ export class SubscriptionScheduler {
     startDate.setHours(startDate.getHours() - 24);
 
     // Получаем тип события из params или используем CME по умолчанию
-    const eventType = subscription.params?.eventType || 'cme';
+    const donkiParams = subscription.params as DonkiSubscriptionParams | null;
+    const eventType = donkiParams?.eventType || 'cme';
 
     let message = '';
 
@@ -254,10 +257,10 @@ export class SubscriptionScheduler {
       id: number;
       telegramId: string;
       chatId: string;
-      type: string;
+      type: 'apod' | 'earth' | 'donki';
     },
     status: 'sent' | 'failed',
-    payload: any,
+    payload: { type: string } | null,
     error: string | null
   ) {
     try {

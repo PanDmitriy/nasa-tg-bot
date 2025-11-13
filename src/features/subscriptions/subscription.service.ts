@@ -1,4 +1,5 @@
 import { prisma } from '../../shared/db/prisma';
+import { SubscriptionParams } from '../../entities/subscription/types';
 
 export type SubscriptionType = 'apod' | 'earth' | 'donki';
 
@@ -7,7 +8,7 @@ export interface CreateSubscriptionParams {
   chatId: string;
   type: SubscriptionType;
   hourUtc: number;
-  params?: Record<string, any>;
+  params?: SubscriptionParams;
 }
 
 export class SubscriptionService {

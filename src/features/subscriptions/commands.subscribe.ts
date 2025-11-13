@@ -80,9 +80,9 @@ export async function handleSubscribeType(ctx: Context & BotContext) {
     `Или введите час вручную (0-23)`;
 
   // Создаем клавиатуру с часами (группируем по 4 часа в ряд)
-  const hourButtons: any[] = [];
+  const hourButtons: ReturnType<typeof Markup.button.callback>[][] = [];
   for (let i = 0; i < 24; i += 4) {
-    const row = [];
+    const row: ReturnType<typeof Markup.button.callback>[] = [];
     for (let j = 0; j < 4 && i + j < 24; j++) {
       const hour = i + j;
       row.push(Markup.button.callback(`${hour}`, `subscribe_time_${hour}`));

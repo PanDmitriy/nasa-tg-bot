@@ -43,7 +43,7 @@ export async function handleUnsubscribe(ctx: Context & BotContext) {
     let message = `📋 <b>Ваши активные подписки:</b>\n\n`;
 
     // Создаем кнопки для каждой подписки
-    const buttons: any[] = [];
+    const buttons: ReturnType<typeof Markup.button.callback>[][] = [];
 
     for (const sub of activeSubscriptions) {
       const typeName = typeNames[sub.type] || sub.type;
