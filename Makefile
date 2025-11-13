@@ -1,5 +1,5 @@
 build: 
-	docker build -t tg-gpt-chat .
+	docker build -t nasa-tg-bot .
 
 run:
-	docker run -d -p 3000:3000 --name tg-gpt-chat --rm tg-gpt-chat
+	docker run -d -p 3000:3000 --name nasa-tg-bot --rm nasa-tg-bot
