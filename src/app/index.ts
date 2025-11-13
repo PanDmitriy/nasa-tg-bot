@@ -5,6 +5,7 @@ import { logger } from '../shared/logger';
 import { Bot } from '../processes/bot';
 import { DonkiNotificationsService } from '../processes/notifications/donki-notifications';
 import { SubscriptionScheduler } from '../processes/schedulers/subscription.scheduler';
+import { CleanupScheduler } from '../processes/schedulers/cleanup.scheduler';
 import { closeDatabase } from '../shared/db/prisma';
 import { startWebhookServer } from './webhook.server';
 
@@ -17,6 +18,7 @@ setupGlobalErrorHandlers();
 const bot = new Bot();
 let notificationsService: DonkiNotificationsService | null = null;
 let subscriptionScheduler: SubscriptionScheduler | null = null;
+let cleanupScheduler: CleanupScheduler | null = null;
 let webhookServer: ReturnType<typeof startWebhookServer> | null = null;
 
 // Обработка завершения работы
@@ -26,6 +28,9 @@ process.once('SIGINT', async () => {
   }
   if (subscriptionScheduler) {
     subscriptionScheduler.stop();
+  }
+  if (cleanupScheduler) {
+    cleanupScheduler.stop();
   }
   if (webhookServer) {
     webhookServer.close();
@@ -39,6 +44,9 @@ process.once('SIGTERM', async () => {
   }
   if (subscriptionScheduler) {
     subscriptionScheduler.stop();
+  }
+  if (cleanupScheduler) {
+    cleanupScheduler.stop();
   }
   if (webhookServer) {
     webhookServer.close();
@@ -58,6 +66,10 @@ bot.start()
     // Запускаем scheduler подписок
     subscriptionScheduler = new SubscriptionScheduler(telegram);
     subscriptionScheduler.start();
+
+    // Запускаем scheduler очистки старых логов
+    cleanupScheduler = new CleanupScheduler();
+    cleanupScheduler.start();
 
     // Запускаем webhook сервер для Stripe (опционально, только если нужен)
     const webhookPort = process.env.WEBHOOK_PORT ? parseInt(process.env.WEBHOOK_PORT, 10) : 3000;
