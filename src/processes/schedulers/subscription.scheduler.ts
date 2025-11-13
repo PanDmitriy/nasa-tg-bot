@@ -1,6 +1,5 @@
 import * as cron from 'node-cron';
 import { Telegram } from 'telegraf';
-import { SubscriptionService } from '../../features/subscriptions/subscription.service';
 import { container } from '../../shared/di/container';
 import { prisma } from '../../shared/db/prisma';
 import { SubscriptionParams, EarthSubscriptionParams, DonkiSubscriptionParams } from '../../entities/subscription/types';
@@ -8,13 +7,12 @@ import { logger } from '../../shared/logger';
 
 export class SubscriptionScheduler {
   private telegram: Telegram;
-  private subscriptionService: SubscriptionService;
+  private subscriptionService = container.subscriptionService;
   private cronJob: cron.ScheduledTask | null = null;
   private isRunning = false;
 
   constructor(telegram: Telegram) {
     this.telegram = telegram;
-    this.subscriptionService = new SubscriptionService();
   }
 
   /**
