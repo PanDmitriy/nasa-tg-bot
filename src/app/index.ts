@@ -11,29 +11,7 @@ import { startWebhookServer } from './webhook.server';
 initSentry();
 setupGlobalErrorHandlers();
 
-/**
- * Валидация обязательных переменных окружения
- */
-function validateConfig(): void {
-  const errors: string[] = [];
-
-  if (!process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN.trim() === '') {
-    errors.push('TELEGRAM_BOT_TOKEN не установлен в переменных окружения');
-  }
-
-  if (!process.env.NASA_API_KEY || process.env.NASA_API_KEY.trim() === '') {
-    errors.push('NASA_API_KEY не установлен в переменных окружения');
-  }
-
-  if (errors.length > 0) {
-    console.error('Ошибки конфигурации:');
-    errors.forEach((error) => console.error(`  - ${error}`));
-    process.exit(1);
-  }
-}
-
-// Валидация конфигурации перед запуском
-validateConfig();
+// Валидация конфигурации выполняется в config/validation.ts при импорте конфигурации
 
 const bot = new Bot();
 let notificationsService: DonkiNotificationsService | null = null;
