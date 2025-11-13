@@ -33,7 +33,7 @@ export class DonkiNotificationsService {
   /**
    * Запускает периодическую проверку новых событий
    */
-  public start() {
+  public async start(): Promise<void> {
     if (this.isRunning) {
       console.log('DonkiNotificationsService уже запущен');
       return;
@@ -43,15 +43,19 @@ export class DonkiNotificationsService {
     console.log('Запуск сервиса уведомлений DONKI...');
 
     // Первая проверка сразу при запуске
-    this.checkNewEvents().catch((error) => {
+    try {
+      await this.checkNewEvents();
+    } catch (error) {
       console.error('Ошибка при первой проверке событий:', error);
-    });
+    }
 
     // Затем периодические проверки
-    this.checkInterval = setInterval(() => {
-      this.checkNewEvents().catch((error) => {
+    this.checkInterval = setInterval(async () => {
+      try {
+        await this.checkNewEvents();
+      } catch (error) {
         console.error('Ошибка при проверке новых событий:', error);
-      });
+      }
     }, this.CHECK_INTERVAL_MS);
 
     console.log(`Сервис уведомлений DONKI запущен. Проверка каждые ${this.CHECK_INTERVAL_MS / 1000 / 60} минут.`);

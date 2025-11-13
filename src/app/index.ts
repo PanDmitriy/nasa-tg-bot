@@ -48,11 +48,11 @@ process.once('SIGTERM', async () => {
 
 // Запуск бота
 bot.start()
-  .then(() => {
+  .then(async () => {
     // Запускаем сервис уведомлений после запуска бота
     const telegram = bot.getTelegram();
     notificationsService = new DonkiNotificationsService(telegram);
-    notificationsService.start();
+    await notificationsService.start();
 
     // Запускаем scheduler подписок
     subscriptionScheduler = new SubscriptionScheduler(telegram);
