@@ -4,6 +4,7 @@ import { NasaImage } from '../../../features/images/api';
 import { container } from '../../../shared/di/container';
 import { getCallbackQueryData } from '../../../shared/lib/telegramHelpers';
 import { logger } from '../../../shared/logger';
+import { validateSearchQuery } from '../../../shared/lib/validators';
 
 
 /**
@@ -17,6 +18,11 @@ export async function handleImages(ctx: Context & BotContext) {
 
   // Если передан запрос, выполняем поиск
   if (args.trim()) {
+    const validation = validateSearchQuery(args.trim());
+    if (!validation.valid) {
+      await ctx.reply(`❌ ${validation.error}`);
+      return;
+    }
     return handleImageSearch(ctx, args.trim());
   }
 
@@ -110,6 +116,13 @@ export async function handleImageTopic(ctx: Context & BotContext) {
  * Обработка поиска по текстовому запросу
  */
 async function handleImageSearch(ctx: Context & BotContext, query: string) {
+  // Валидация запроса (должна быть выполнена до вызова функции, но на всякий случай)
+  const validation = validateSearchQuery(query);
+  if (!validation.valid) {
+    await ctx.reply(`❌ ${validation.error}`);
+    return;
+  }
+
   try {
     await ctx.sendChatAction('upload_photo');
     const loading = await ctx.reply(`⏳ Ищу изображения по запросу "${query}"...`);

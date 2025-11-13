@@ -4,6 +4,7 @@ import { container } from '../../../../shared/di/container';
 import { SubscriptionType } from '../../../../features/subscriptions/subscription.service';
 import { getCallbackQueryData } from '../../../../shared/lib/telegramHelpers';
 import { logger } from '../../../../shared/logger';
+import { validateHourUtc } from '../../../../shared/lib/validators';
 
 interface SubscribeSession {
   step?: 'type' | 'time' | 'confirm';
@@ -119,8 +120,9 @@ export async function handleSubscribeTime(ctx: Context & BotContext) {
   }
   const hourUtc = parseInt(data.replace('subscribe_time_', ''), 10);
 
-  if (isNaN(hourUtc) || hourUtc < 0 || hourUtc > 23) {
-    await ctx.reply('❌ Неверное время. Выберите час от 0 до 23.');
+  const validation = validateHourUtc(hourUtc);
+  if (!validation.valid) {
+    await ctx.reply(`❌ ${validation.error}`);
     return;
   }
 
@@ -275,8 +277,9 @@ export async function handleSubscribeTimeInput(ctx: Context & BotContext) {
 
   const hourUtc = parseInt(text, 10);
 
-  if (isNaN(hourUtc) || hourUtc < 0 || hourUtc > 23) {
-    await ctx.reply('❌ Неверное время. Введите число от 0 до 23.');
+  const validation = validateHourUtc(hourUtc);
+  if (!validation.valid) {
+    await ctx.reply(`❌ ${validation.error}`);
     return;
   }
 
