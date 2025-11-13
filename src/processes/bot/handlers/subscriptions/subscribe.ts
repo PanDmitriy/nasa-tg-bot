@@ -1,10 +1,9 @@
 import { Context, Markup } from 'telegraf';
-import { BotContext } from '../../processes/bot/types';
-import { SubscriptionService, SubscriptionType } from './subscription.service';
-import { getCallbackQueryData } from '../../shared/lib/telegramHelpers';
-import { logger } from '../../shared/logger';
-
-const subscriptionService = new SubscriptionService();
+import { BotContext } from '../../types';
+import { container } from '../../../../shared/di/container';
+import { SubscriptionType } from '../../../../features/subscriptions/subscription.service';
+import { getCallbackQueryData } from '../../../../shared/lib/telegramHelpers';
+import { logger } from '../../../../shared/logger';
 
 interface SubscribeSession {
   step?: 'type' | 'time' | 'confirm';
@@ -185,7 +184,7 @@ export async function handleSubscribeConfirm(ctx: Context & BotContext) {
     const telegramId = ctx.from.id.toString();
     const chatId = ctx.chat.id.toString();
 
-    await subscriptionService.create({
+    await container.subscriptionService.create({
       telegramId,
       chatId,
       type,

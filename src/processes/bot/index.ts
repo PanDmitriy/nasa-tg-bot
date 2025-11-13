@@ -53,12 +53,12 @@ import {
   handleSubscribeCancel,
   handleSubscribeClose,
   handleSubscribeTimeInput,
-} from '../../features/subscriptions/commands.subscribe';
+} from './handlers/subscriptions/subscribe';
 import {
   handleUnsubscribe,
   handleUnsubscribeItem,
   handleUnsubscribeClose,
-} from '../../features/subscriptions/commands.unsubscribe';
+} from './handlers/subscriptions/unsubscribe';
 import {
   handlePremium,
   handlePremiumClose,

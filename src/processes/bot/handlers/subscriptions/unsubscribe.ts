@@ -1,10 +1,8 @@
 import { Context, Markup } from 'telegraf';
-import { BotContext } from '../../processes/bot/types';
-import { SubscriptionService } from './subscription.service';
-import { getCallbackQueryData } from '../../shared/lib/telegramHelpers';
-import { logger } from '../../shared/logger';
-
-const subscriptionService = new SubscriptionService();
+import { BotContext } from '../../types';
+import { container } from '../../../../shared/di/container';
+import { getCallbackQueryData } from '../../../../shared/lib/telegramHelpers';
+import { logger } from '../../../../shared/logger';
 
 /**
  * Главный handler для команды /unsubscribe
@@ -19,7 +17,7 @@ export async function handleUnsubscribe(ctx: Context & BotContext) {
 
   try {
     // Получаем все подписки пользователя (включая отключенные)
-    const subscriptions = await subscriptionService.getByChat(chatId);
+    const subscriptions = await container.subscriptionService.getByChat(chatId);
 
     if (subscriptions.length === 0) {
       await ctx.reply('❌ У вас нет активных подписок.');
@@ -102,10 +100,10 @@ export async function handleUnsubscribeItem(ctx: Context & BotContext) {
 
   try {
     // Отключаем подписку
-    await subscriptionService.disable(subscriptionId, chatId);
+    await container.subscriptionService.disable(subscriptionId, chatId);
 
     // Получаем информацию о подписке для сообщения
-    const subscription = await subscriptionService.getById(subscriptionId);
+    const subscription = await container.subscriptionService.getById(subscriptionId);
 
     if (!subscription) {
       await ctx.reply('❌ Подписка не найдена.');
