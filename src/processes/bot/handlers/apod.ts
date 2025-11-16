@@ -1,9 +1,10 @@
-import { Context } from 'telegraf';
+import { Context, Markup } from 'telegraf';
 import { BotContext } from '../types';
 import { container } from '../../../shared/di/container';
 import { config } from '../../../app/config';
-import { getMessageId } from '../../../shared/lib/telegramHelpers';
+import { getMessageId, getCallbackQueryData } from '../../../shared/lib/telegramHelpers';
 import { logger } from '../../../shared/logger';
+import { handleTelegramError } from '../../../shared/lib/errorHandler/errorHandler';
 
 export async function handleAPOD(ctx: Context & BotContext) {
   // Показываем индикатор загрузки и сообщение пользователю
@@ -52,9 +53,21 @@ export async function handleAPOD(ctx: Context & BotContext) {
     }
 
     const caption = container.apodService.formatApodAsImage(apod);
+    const keyboard = Markup.inlineKeyboard([
+      [
+        Markup.button.callback('📖 Читать полностью', `apod_full_${apod.date}`),
+        Markup.button.url('🔗 На сайте NASA', `https://apod.nasa.gov/apod/ap${apod.date.replace(/-/g, '')}.html`)
+      ],
+      [
+        Markup.button.callback('🌌 Еще фото', 'apod_random'),
+        Markup.button.callback('🏠 Меню', 'main_menu')
+      ]
+    ]);
+    
     await ctx.replyWithPhoto(apod.url, {
       caption,
-      parse_mode: 'HTML'
+      parse_mode: 'HTML',
+      ...keyboard
     });
     
     // Удаляем сообщение о загрузке после успешной отправки
@@ -73,5 +86,61 @@ export async function handleAPOD(ctx: Context & BotContext) {
     
     // Ошибки обрабатываются глобальным middleware
     throw error;
+  }
+}
+
+/**
+ * Обработчик для "Читать полностью"
+ */
+export async function handleApodFull(ctx: Context & BotContext) {
+  try {
+    await ctx.answerCbQuery('📖 Загружаю полное описание...');
+    
+    const data = getCallbackQueryData(ctx);
+    const date = data.replace('apod_full_', '');
+    
+    const apod = await container.apodService.getApod(date);
+    
+    const fullMessage = `🌌 <b>${apod.title}</b>\n\n` +
+      `📅 <i>${new Date(apod.date).toLocaleString('ru-RU')}</i>\n\n` +
+      `${apod.explanation}\n\n` +
+      `📸 <i>NASA Astronomy Picture of the Day</i>\n\n` +
+      `🔗 <a href="https://apod.nasa.gov/apod/ap${apod.date.replace(/-/g, '')}.html">Открыть на сайте NASA</a>`;
+    
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('🌌 Еще фото', 'apod_random')],
+      [Markup.button.callback('🏠 Меню', 'main_menu')]
+    ]);
+    
+    try {
+      await ctx.editMessageText(fullMessage, {
+        parse_mode: 'HTML',
+        ...keyboard,
+        link_preview_options: { is_disabled: true }
+      });
+    } catch {
+      await ctx.reply(fullMessage, {
+        parse_mode: 'HTML',
+        ...keyboard,
+        link_preview_options: { is_disabled: true }
+      });
+    }
+  } catch (error) {
+    await handleTelegramError(ctx, error, 'ApodFull');
+  }
+}
+
+/**
+ * Обработчик для "Еще фото" (случайное фото)
+ */
+export async function handleApodRandom(ctx: Context & BotContext) {
+  try {
+    await ctx.answerCbQuery('🌌 Загружаю новое фото...');
+    try {
+      await ctx.deleteMessage();
+    } catch {}
+    await handleAPOD(ctx);
+  } catch (error) {
+    await handleTelegramError(ctx, error, 'ApodRandom');
   }
 }

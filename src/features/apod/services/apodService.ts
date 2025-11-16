@@ -56,12 +56,23 @@ export class ApodService {
   }
 
   /**
+   * Получает APOD по дате
+   */
+  async getApod(date: string): Promise<ApodResponse> {
+    return this.apodApi.getApod(date);
+  }
+
+  /**
    * Форматирует APOD для отправки как изображение
    */
   formatApodAsImage(apod: ApodResponse): string {
+    const shortExplanation = apod.explanation.length > 300
+      ? apod.explanation.substring(0, 300) + '...'
+      : apod.explanation;
+    
     return `🌌 <b>${apod.title}</b>\n\n` +
       `📅 <i>${new Date(apod.date).toLocaleString('ru-RU')}</i>\n\n` +
-      `${apod.explanation.substring(0, 500)}...\n\n` +
+      `${shortExplanation}\n\n` +
       `📸 <i>NASA Astronomy Picture of the Day</i>`;
   }
 
