@@ -1,3 +1,4 @@
+import { Context } from 'telegraf';
 import { BotContext } from '../../processes/bot/types';
 
 /**
@@ -45,3 +46,15 @@ export function getMessageId(message: unknown): number | null {
   return null;
 }
 
+/**
+ * Получает имя пользователя для персонализации сообщений
+ */
+export function getUserName(ctx: Context & BotContext): string {
+  if (ctx.from?.first_name) {
+    return ctx.from.first_name;
+  }
+  if (ctx.from?.username) {
+    return ctx.from.username;
+  }
+  return 'друг';
+}
