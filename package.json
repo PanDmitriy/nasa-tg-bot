@@ -47,7 +47,6 @@
     "express": "^5.1.0",
     "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
-    "stripe": "^19.3.0",
     "telegraf": "^4.15.3",
     "zod": "^4.1.12"
   }

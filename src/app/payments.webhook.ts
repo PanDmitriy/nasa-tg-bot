@@ -1,69 +1,76 @@
 import express from 'express';
-import Stripe from 'stripe';
 import { prisma } from '../shared/db/prisma';
 import { logger } from '../shared/logger';
+import { WebPayService } from '../features/payments/webpay.service';
 
 const router = express.Router();
 
-/**
- * Webhook handler для Stripe событий
- * Обрабатывает события checkout.session.completed для активации Premium
- */
-export function createStripeWebhookHandler() {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2025-10-29.clover',
-  });
+// Инициализация WebPay сервиса для проверки подписей
+let webpayService: WebPayService | null = null;
 
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+function getWebPayService(): WebPayService {
+  if (!webpayService) {
+    webpayService = new WebPayService();
+  }
+  return webpayService;
+}
+
+/**
+ * Webhook handler для WebPay событий
+ * Обрабатывает уведомления о статусе платежей
+ */
+export function createWebPayWebhookHandler() {
+  const webhookSecret = process.env.WEBPAY_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    logger.warn('STRIPE_WEBHOOK_SECRET is not set. Webhook signature verification будет отключена.');
+    logger.warn('WEBPAY_WEBHOOK_SECRET is not set. Webhook signature verification будет отключена.');
   }
 
   router.post(
     '/webhook',
-    express.raw({ type: 'application/json' }),
+    express.urlencoded({ extended: true }),
+    express.json(),
     async (req: express.Request, res: express.Response) => {
-      const sig = req.headers['stripe-signature'];
-
-      if (!sig) {
-        logger.error('Missing stripe-signature header');
-        res.status(400).send('Missing stripe-signature header');
-        return;
-      }
-
-      let event: Stripe.Event;
-
       try {
-        // Верифицируем подпись webhook
-        if (webhookSecret) {
-          event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-        } else {
-          // В режиме разработки без верификации (не рекомендуется для продакшена)
-          event = JSON.parse(req.body.toString()) as Stripe.Event;
-          logger.warn('Webhook signature verification is disabled. This should not be used in production.');
-        }
-      } catch (err) {
-        const error = err instanceof Error ? err.message : String(err);
-        logger.error('Webhook signature verification failed', error);
-        res.status(400).send(`Webhook Error: ${error}`);
-        return;
-      }
+        const webpay = getWebPayService();
+        const data = req.body;
 
-      // Обрабатываем событие
-      try {
-        if (event.type === 'checkout.session.completed') {
-          const session = event.data.object as Stripe.Checkout.Session;
-          await handleCheckoutSessionCompleted(session);
-        } else if (event.type === 'customer.subscription.deleted') {
-          const subscription = event.data.object as Stripe.Subscription;
-          await handleSubscriptionDeleted(subscription);
-        } else if (event.type === 'customer.subscription.updated') {
-          const subscription = event.data.object as Stripe.Subscription;
-          await handleSubscriptionUpdated(subscription);
+        // Проверяем подпись webhook (если используется)
+        const signature = req.headers['x-webpay-signature'] as string;
+        if (webhookSecret && signature) {
+          const isValid = webpay.verifyWebhookSignature(data, signature);
+          if (!isValid) {
+            logger.error('Invalid webhook signature', undefined, { data });
+            res.status(400).send('Invalid signature');
+            return;
+          }
+        } else if (webhookSecret && !signature) {
+          logger.warn('Webhook signature verification is enabled but signature header is missing');
         }
 
-        res.json({ received: true });
+        // Обрабатываем событие в зависимости от статуса платежа
+        const paymentStatus = data.status || data.payment_status;
+        const orderId = data.order_id || data.order_num;
+
+        if (!orderId) {
+          logger.error('Missing order_id in webhook data', undefined, { data });
+          res.status(400).send('Missing order_id');
+          return;
+        }
+
+        logger.info('WebPay webhook received', { orderId, status: paymentStatus });
+
+        // Обрабатываем успешный платеж
+        if (paymentStatus === 'success' || paymentStatus === 'approved' || paymentStatus === '5') {
+          await handlePaymentSuccess(data, orderId);
+        } else if (paymentStatus === 'failed' || paymentStatus === 'declined' || paymentStatus === '3') {
+          await handlePaymentFailed(data, orderId);
+        } else if (paymentStatus === 'canceled' || paymentStatus === 'cancelled' || paymentStatus === '2') {
+          await handlePaymentCancelled(data, orderId);
+        }
+
+        // WebPay ожидает ответ 200 OK
+        res.status(200).send('OK');
       } catch (error) {
         logger.error('Error processing webhook event', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -75,30 +82,32 @@ export function createStripeWebhookHandler() {
 }
 
 /**
- * Обрабатывает успешное завершение checkout сессии
+ * Обрабатывает успешный платеж
  * Активирует Premium подписку для пользователя
  */
-async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-  const telegramId = session.metadata?.telegramId || session.client_reference_id;
+async function handlePaymentSuccess(data: any, orderId: string) {
+  // Извлекаем telegramId из orderId или из кастомных полей
+  let telegramId: string | null = null;
+
+  // Пытаемся извлечь telegramId из orderId (формат: premium_{telegramId}_{timestamp})
+  const orderIdMatch = orderId.match(/^premium_(\d+)_\d+$/);
+  if (orderIdMatch) {
+    telegramId = orderIdMatch[1];
+  }
+
+  // Или из кастомного поля
+  if (!telegramId && data.wsb_custom_telegram_id) {
+    telegramId = data.wsb_custom_telegram_id;
+  }
 
   if (!telegramId) {
-    logger.error('Missing telegramId in checkout session', undefined, { sessionId: session.id });
+    logger.error('Missing telegramId in payment data', undefined, { orderId, data });
     return;
   }
 
-  // Получаем информацию о подписке
-  const subscriptionId = session.subscription as string;
-  if (!subscriptionId) {
-    logger.error('Missing subscription ID in checkout session', undefined, { sessionId: session.id });
-    return;
-  }
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2025-10-29.clover',
-  });
-
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-  const currentPeriodEnd = new Date((subscription as any).current_period_end * 1000);
+  // Вычисляем дату окончания подписки (1 месяц с текущей даты)
+  const currentPeriodEnd = new Date();
+  currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
 
   // Создаем или обновляем Premium запись
   const existingPremium = await prisma.premium.findFirst({
@@ -114,7 +123,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         until: currentPeriodEnd,
       },
     });
-    logger.info('Premium updated', { telegramId, until: currentPeriodEnd });
+    logger.info('Premium updated', { telegramId, orderId, until: currentPeriodEnd });
   } else {
     // Создаем новую запись
     await prisma.premium.create({
@@ -124,42 +133,22 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         until: currentPeriodEnd,
       },
     });
-    logger.info('Premium activated', { telegramId, until: currentPeriodEnd });
+    logger.info('Premium activated', { telegramId, orderId, until: currentPeriodEnd });
   }
 }
 
 /**
- * Обрабатывает отмену подписки
+ * Обрабатывает неудачный платеж
  */
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  // Находим Premium запись по customer ID (если храним его в metadata)
-  // Или можно использовать другой способ связи
-  logger.info('Subscription deleted', { subscriptionId: subscription.id });
-  
-  // В реальном приложении нужно связать Stripe customer ID с telegramId
-  // Для упрощения можно деактивировать все активные Premium записи
-  // или хранить stripeCustomerId в Premium модели
+async function handlePaymentFailed(data: any, orderId: string) {
+  logger.info('Payment failed', { orderId, data });
+  // Можно добавить логику для уведомления пользователя или логирования
 }
 
 /**
- * Обрабатывает обновление подписки
+ * Обрабатывает отмененный платеж
  */
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  const currentPeriodEnd = new Date((subscription as any).current_period_end * 1000);
-  
-  // Обновляем Premium запись если подписка активна
-  if (subscription.status === 'active') {
-    // В реальном приложении нужно связать Stripe customer ID с telegramId
-    logger.info('Subscription updated', {
-      subscriptionId: subscription.id,
-      periodEnd: currentPeriodEnd,
-    });
-  } else {
-    // Деактивируем Premium если подписка неактивна
-    logger.info('Subscription status changed', {
-      subscriptionId: subscription.id,
-      status: subscription.status,
-    });
-  }
+async function handlePaymentCancelled(data: any, orderId: string) {
+  logger.info('Payment cancelled', { orderId, data });
+  // Можно добавить логику для обработки отмены
 }
-

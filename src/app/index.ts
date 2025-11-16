@@ -70,12 +70,12 @@ bot.start()
     cleanupScheduler = new CleanupScheduler();
     cleanupScheduler.start();
 
-    // Запускаем webhook сервер для Stripe (опционально, только если нужен)
+    // Запускаем webhook сервер для WebPay (опционально, только если нужен)
     const webhookPort = process.env.WEBHOOK_PORT ? parseInt(process.env.WEBHOOK_PORT, 10) : 3000;
-    if (process.env.STRIPE_SECRET_KEY) {
+    if (process.env.WEBPAY_STORE_ID && process.env.WEBPAY_SECRET_KEY) {
       webhookServer = startWebhookServer(webhookPort);
     } else {
-      logger.info('Stripe webhook server is disabled (STRIPE_SECRET_KEY not set)');
+      logger.info('WebPay webhook server is disabled (WEBPAY_STORE_ID or WEBPAY_SECRET_KEY not set)');
     }
   })
   .catch((error) => {

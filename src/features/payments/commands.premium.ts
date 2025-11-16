@@ -1,20 +1,20 @@
 import { Context, Markup } from 'telegraf';
 import { BotContext } from '../../processes/bot/types';
-import { StripeService } from './stripe.service';
+import { WebPayService } from './webpay.service';
 import { prisma } from '../../shared/db/prisma';
 import { logger } from '../../shared/logger';
 
-// Ленивая инициализация StripeService
-let stripeService: StripeService | null = null;
+// Ленивая инициализация WebPayService
+let webpayService: WebPayService | null = null;
 
-function getStripeService(): StripeService {
-  if (!stripeService) {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('STRIPE_SECRET_KEY is not set in environment variables. Premium features are disabled.');
+function getWebPayService(): WebPayService {
+  if (!webpayService) {
+    if (!process.env.WEBPAY_STORE_ID || !process.env.WEBPAY_SECRET_KEY) {
+      throw new Error('WEBPAY_STORE_ID or WEBPAY_SECRET_KEY is not set in environment variables. Premium features are disabled.');
     }
-    stripeService = new StripeService();
+    webpayService = new WebPayService();
   }
-  return stripeService;
+  return webpayService;
 }
 
 /**
@@ -61,8 +61,11 @@ export async function handlePremium(ctx: Context & BotContext) {
     }
 
     // Создаем Checkout Session
-    const stripe = getStripeService();
-    const session = await stripe.createCheckoutSession({ telegramId });
+    const webpay = getWebPayService();
+    const session = await webpay.createCheckoutSession({ telegramId });
+
+    // Получаем цену из переменных окружения или используем значение по умолчанию
+    const priceByn = parseInt(process.env.PREMIUM_PRICE_BYN || '3000', 10) / 100; // Конвертируем копейки в рубли
 
     const message =
       `⭐ <b>NASA Bot Premium</b>\n\n` +
@@ -72,7 +75,7 @@ export async function handlePremium(ctx: Context & BotContext) {
       `• 🎨 Эксклюзивные функции\n` +
       `• ⚡ Быстрый доступ ко всем командам\n` +
       `• 🚫 Без рекламы\n\n` +
-      `💰 Стоимость: $9.99/месяц\n\n` +
+      `💰 Стоимость: ${priceByn.toFixed(2)} BYN/месяц\n\n` +
       `Нажмите кнопку ниже, чтобы оформить подписку:`;
 
     const keyboard = Markup.inlineKeyboard([

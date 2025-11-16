@@ -1,27 +1,27 @@
 import express from 'express';
-import { createStripeWebhookHandler } from './payments.webhook';
+import { createWebPayWebhookHandler } from './payments.webhook';
 import { logger } from '../shared/logger';
 
 /**
- * Запускает HTTP сервер для обработки Stripe webhooks
+ * Запускает HTTP сервер для обработки WebPay webhooks
  */
 export function startWebhookServer(port: number = 3000) {
   const app = express();
 
-  // Stripe webhook handler (должен быть до express.json для raw body)
-  app.use('/api/payments', createStripeWebhookHandler());
+  // WebPay webhook handler
+  app.use('/api/payments', createWebPayWebhookHandler());
 
   // Middleware для парсинга JSON (для других endpoints)
   app.use(express.json());
 
   // Health check endpoint
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'stripe-webhook' });
+    res.json({ status: 'ok', service: 'webpay-webhook' });
   });
 
   // Success page
   app.get('/payment/success', (req, res) => {
-    const sessionId = req.query.session_id;
+    const orderId = req.query.order_id;
     const telegramId = req.query.telegram_id;
     res.send(`
       <html>
@@ -29,7 +29,7 @@ export function startWebhookServer(port: number = 3000) {
         <body>
           <h1>✅ Payment Successful!</h1>
           <p>Your Premium subscription has been activated.</p>
-          <p>Session ID: ${sessionId}</p>
+          <p>Order ID: ${orderId}</p>
           <p>Telegram ID: ${telegramId}</p>
           <p>You can close this window and return to Telegram.</p>
         </body>

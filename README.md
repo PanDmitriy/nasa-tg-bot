@@ -29,8 +29,8 @@ Telegram бот для получения информации о космосе
 - **Axios** - HTTP клиент с автоматическими retry и обработкой ошибок
 - **Prisma** - ORM для работы с базой данных
 - **SQLite** - База данных для хранения подписок
-- **Stripe** - Платежная система для Premium подписок
-- **Express** - HTTP сервер для Stripe webhooks
+- **WebPay** - Платежная система для Premium подписок
+- **Express** - HTTP сервер для WebPay webhooks
 - **ESLint & Prettier** - Линтинг и форматирование кода
 - **Docker** - Контейнеризация приложения
 
@@ -97,11 +97,16 @@ NODE_ENV=development
 #### Опциональные переменные:
 - `NODE_ENV` - окружение (`development`/`production`), по умолчанию `development`
 
-#### Stripe (Premium подписка):
-- `STRIPE_SECRET_KEY` - секретный ключ Stripe для включения Premium функций. Получить на [dashboard.stripe.com](https://dashboard.stripe.com/apikeys)
-- `STRIPE_WEBHOOK_SECRET` - секрет webhook для верификации Stripe событий (рекомендуется для production). Получить на [dashboard.stripe.com/webhooks](https://dashboard.stripe.com/webhooks)
-- `DOMAIN_URL` - домен для Stripe Checkout (по умолчанию `http://localhost:3000`). Используется для redirect URL после оплаты
-- `WEBHOOK_PORT` - порт для webhook сервера Stripe (по умолчанию `3000`). Webhook сервер запускается только если установлен `STRIPE_SECRET_KEY`
+#### WebPay (Premium подписка):
+- `WEBPAY_STORE_ID` - ID магазина WebPay для включения Premium функций. Получить в личном кабинете [webpay.by](https://webpay.by/)
+- `WEBPAY_SECRET_KEY` - секретный ключ WebPay для подписи запросов. Получить в личном кабинете [webpay.by](https://webpay.by/)
+- `WEBPAY_WEBHOOK_SECRET` - секрет webhook для верификации WebPay событий (рекомендуется для production)
+- `WEBPAY_TEST_MODE` - режим тестирования (`true`/`false`). По умолчанию `false`
+- `WEBPAY_API_URL` - URL API WebPay для production (опционально)
+- `WEBPAY_TEST_URL` - URL API WebPay для тестирования (опционально)
+- `PREMIUM_PRICE_BYN` - цена Premium подписки в копейках BYN (по умолчанию `3000` = 30.00 BYN)
+- `DOMAIN_URL` - домен для WebPay платежей (по умолчанию `http://localhost:3000`). Используется для redirect URL после оплаты
+- `WEBHOOK_PORT` - порт для webhook сервера WebPay (по умолчанию `3000`). Webhook сервер запускается только если установлены `WEBPAY_STORE_ID` и `WEBPAY_SECRET_KEY`
 
 > **Примечание:** Redis в текущей версии не используется. Все данные хранятся в SQLite базе данных.
 
@@ -144,7 +149,7 @@ docker run -d --env-file .env nasa-tg-bot
   - Просмотр событий космической погоды (CME, вспышки, SEP, GST, IPS)
   - Подписки на уведомления о событиях
   - Простой и подробный режимы отображения
-- `/premium` - Premium подписка (требует настройки Stripe)
+- `/premium` - Premium подписка (требует настройки WebPay)
 - `/help` - Показать справку по командам
 
 ## Структура проекта
@@ -234,42 +239,46 @@ src/
 - Уведомления DONKI
 - Симуляции WSA-ENLIL
 
-### Настройка Stripe (Premium подписка)
+### Настройка WebPay (Premium подписка)
 
-Для включения Premium функций и оплаты через Stripe:
+Для включения Premium функций и оплаты через WebPay:
 
-1. Создайте аккаунт на [stripe.com](https://stripe.com/)
-2. Получите секретный ключ API на [dashboard.stripe.com/apikeys](https://dashboard.stripe.com/apikeys)
+1. Создайте аккаунт на [webpay.by](https://webpay.by/)
+2. Получите `WEBPAY_STORE_ID` и `WEBPAY_SECRET_KEY` в личном кабинете WebPay
 3. Добавьте в `.env`:
    ```env
-   STRIPE_SECRET_KEY=sk_test_...
+   WEBPAY_STORE_ID=your_store_id
+   WEBPAY_SECRET_KEY=your_secret_key
    DOMAIN_URL=https://your-domain.com  # или http://localhost:3000 для разработки
+   PREMIUM_PRICE_BYN=3000  # 30.00 BYN в копейках
    ```
 
 #### Настройка Webhook (для production)
 
 Для автоматической активации Premium подписок после оплаты:
 
-1. Создайте webhook endpoint на [dashboard.stripe.com/webhooks](https://dashboard.stripe.com/webhooks)
+1. Настройте webhook endpoint в личном кабинете WebPay
 2. Укажите URL: `https://your-domain.com/api/payments/webhook`
-3. Выберите события:
-   - `checkout.session.completed`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-4. Получите Webhook Signing Secret и добавьте в `.env`:
+3. Получите Webhook Secret и добавьте в `.env`:
    ```env
-   STRIPE_WEBHOOK_SECRET=whsec_...
+   WEBPAY_WEBHOOK_SECRET=your_webhook_secret
    ```
 
-5. Настройте порт webhook сервера (опционально):
+4. Настройте порт webhook сервера (опционально):
    ```env
    WEBHOOK_PORT=3000
    ```
 
+5. Для тестирования включите тестовый режим:
+   ```env
+   WEBPAY_TEST_MODE=true
+   ```
+
 **Важно:**
-- Webhook сервер запускается автоматически при наличии `STRIPE_SECRET_KEY`
-- В development режиме верификация подписи отключена (не рекомендуется для production)
+- Webhook сервер запускается автоматически при наличии `WEBPAY_STORE_ID` и `WEBPAY_SECRET_KEY`
+- В development режиме верификация подписи может быть отключена (не рекомендуется для production)
 - Убедитесь, что `DOMAIN_URL` доступен из интернета для работы webhook
+- WebPay принимает платежи в белорусских рублях (BYN)
 
 ### Добавление новой функции
 
