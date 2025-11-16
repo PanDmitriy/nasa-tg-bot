@@ -1,53 +1,32 @@
-import * as Sentry from '@sentry/node';
+import { logger } from './index';
 
 /**
- * Инициализация Sentry для мониторинга ошибок
+ * Настройка глобальных обработчиков ошибок
+ * Простое логирование без внешних сервисов
  */
 export function initSentry(): void {
-  const dsn = process.env.SENTRY_DSN;
-
-  if (!dsn) {
-    console.log('Sentry is disabled (SENTRY_DSN not set)');
-    return;
-  }
-
-  const environment = process.env.NODE_ENV || 'development';
-  const tracesSampleRate = environment === 'production' ? 0.1 : 1.0;
-
-  Sentry.init({
-    dsn,
-    environment,
-    tracesSampleRate,
-    // HTTP интеграция включена по умолчанию в @sentry/node
-  });
-
-  console.log('Sentry initialized successfully');
+  // Функция оставлена для обратной совместимости, но ничего не делает
+  // Можно использовать для будущей инициализации других сервисов мониторинга
 }
 
 /**
- * Обертка для глобального обработчика необработанных исключений
+ * Глобальные обработчики необработанных исключений
  */
 export function setupGlobalErrorHandlers(): void {
   // Обработка необработанных исключений
   process.on('uncaughtException', (error: Error) => {
-    console.error('Uncaught Exception:', error);
-    Sentry.captureException(error);
-    // Даем время Sentry отправить событие перед завершением
-    Sentry.flush(2000).then(() => {
+    logger.error('Uncaught Exception', error);
+    // Даем время для логирования перед завершением
+    setTimeout(() => {
       process.exit(1);
-    });
+    }, 100);
   });
 
   // Обработка необработанных отклонений промисов
   process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
     const error = reason instanceof Error ? reason : new Error(String(reason));
-    Sentry.captureException(error, {
-      contexts: {
-        promise: {
-          promise: String(promise),
-        },
-      },
+    logger.error('Unhandled Rejection', error, {
+      promise: String(promise),
     });
   });
 }

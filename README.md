@@ -29,7 +29,6 @@ Telegram бот для получения информации о космосе
 - **Axios** - HTTP клиент с автоматическими retry и обработкой ошибок
 - **Prisma** - ORM для работы с базой данных
 - **SQLite** - База данных для хранения подписок
-- **Sentry** - Мониторинг ошибок и централизованное логирование
 - **Stripe** - Платежная система для Premium подписок
 - **Express** - HTTP сервер для Stripe webhooks
 - **ESLint & Prettier** - Линтинг и форматирование кода
@@ -97,9 +96,6 @@ NODE_ENV=development
 
 #### Опциональные переменные:
 - `NODE_ENV` - окружение (`development`/`production`), по умолчанию `development`
-
-#### Sentry (мониторинг ошибок):
-- `SENTRY_DSN` - DSN для Sentry (опционально, если не установлен - Sentry отключен). Получить на [sentry.io](https://sentry.io/)
 
 #### Stripe (Premium подписка):
 - `STRIPE_SECRET_KEY` - секретный ключ Stripe для включения Premium функций. Получить на [dashboard.stripe.com](https://dashboard.stripe.com/apikeys)
@@ -237,25 +233,6 @@ src/
 - CME события (с фильтрацией по уровню опасности)
 - Уведомления DONKI
 - Симуляции WSA-ENLIL
-
-### Настройка Sentry (мониторинг ошибок)
-
-Sentry интегрирован для централизованного логирования ошибок. Для включения:
-
-1. Создайте проект на [sentry.io](https://sentry.io/)
-2. Получите DSN вашего проекта
-3. Добавьте в `.env`:
-   ```env
-   SENTRY_DSN=https://your-dsn@sentry.io/project-id
-   ```
-
-Sentry автоматически:
-- Отслеживает необработанные исключения (`uncaughtException`)
-- Отслеживает отклоненные промисы (`unhandledRejection`)
-- Логирует ошибки из обработчиков Telegram с контекстом (chatId, handler, updateType)
-- Отправляет ошибки при запуске бота
-
-Если `SENTRY_DSN` не установлен, Sentry отключается и бот работает без мониторинга.
 
 ### Настройка Stripe (Premium подписка)
 

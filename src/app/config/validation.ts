@@ -6,7 +6,6 @@ const envSchema = z.object({
   NASA_API_KEY: z.string().min(1, 'NASA_API_KEY is required'),
   DATABASE_URL: z.string().default('file:./data/bot.db'),
   NODE_ENV: z.enum(['development', 'production']).default('development'),
-  SENTRY_DSN: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   DOMAIN_URL: z.string().default('http://localhost:3000'),

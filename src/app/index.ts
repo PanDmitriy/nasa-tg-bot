@@ -1,5 +1,4 @@
 import 'dotenv/config';
-import * as Sentry from '@sentry/node';
 import { initSentry, setupGlobalErrorHandlers } from '../shared/logger/sentry';
 import { logger } from '../shared/logger';
 import { Bot } from '../processes/bot';
@@ -9,7 +8,7 @@ import { CleanupScheduler } from '../processes/schedulers/cleanup.scheduler';
 import { closeDatabase } from '../shared/db/prisma';
 import { startWebhookServer } from './webhook.server';
 
-// Инициализация Sentry должна быть первой, до всех остальных операций
+// Настройка глобальных обработчиков ошибок
 initSentry();
 setupGlobalErrorHandlers();
 
@@ -81,7 +80,5 @@ bot.start()
   })
   .catch((error) => {
     logger.error('Ошибка запуска бота', error);
-    Sentry.flush(2000).then(() => {
-      process.exit(1);
-    });
+    process.exit(1);
   }); 

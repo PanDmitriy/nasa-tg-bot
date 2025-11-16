@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/node';
-
 type LogContext = Record<string, unknown>;
 
 function ensureError(error: unknown): Error {
@@ -19,38 +17,24 @@ export const logger = {
   error(message: string, error?: unknown, context?: LogContext): void {
     if (error) {
       const normalizedError = ensureError(error);
-      console.error(`[ERROR] ${message}`, normalizedError, context);
-      Sentry.captureException(normalizedError, {
-        extra: context,
-        tags: { logger: 'error' },
-      });
+      console.error(`[ERROR] ${message}`, normalizedError, context || '');
       return;
     }
 
-    console.error(`[ERROR] ${message}`, context);
-    Sentry.captureMessage(message, {
-      level: 'error',
-      extra: context,
-      tags: { logger: 'error' },
-    });
+    console.error(`[ERROR] ${message}`, context || '');
   },
 
   warn(message: string, context?: LogContext): void {
-    console.warn(`[WARN] ${message}`, context);
-    Sentry.captureMessage(message, {
-      level: 'warning',
-      extra: context,
-      tags: { logger: 'warn' },
-    });
+    console.warn(`[WARN] ${message}`, context || '');
   },
 
   info(message: string, context?: LogContext): void {
-    console.log(`[INFO] ${message}`, context);
+    console.log(`[INFO] ${message}`, context || '');
   },
 
   debug(message: string, context?: LogContext): void {
     if (process.env.NODE_ENV === 'development') {
-      console.debug(`[DEBUG] ${message}`, context);
+      console.debug(`[DEBUG] ${message}`, context || '');
     }
   },
 };
