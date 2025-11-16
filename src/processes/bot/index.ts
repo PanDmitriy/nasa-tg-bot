@@ -5,11 +5,21 @@ import { handleTelegramError } from '../../shared/lib/errorHandler/errorHandler'
 import { logger } from '../../shared/logger';
 import { rateLimitMiddleware } from '../../shared/lib/rateLimiter';
 import { handleStart } from './handlers/start';
-import { handleAPOD } from './handlers/apod';
+import { handleAPOD, handleApodFull, handleApodRandom } from './handlers/apod';
 import { handleEarth, handleEarthRetry, handleEarthType } from './handlers/earth';
 import { handleAsteroids } from './handlers/asteroids';
 // removed Mars feature: handlers are no longer used
-import { handleHelp } from './handlers/help';
+import {
+  handleHelp,
+  handleHelpApod,
+  handleHelpEarth,
+  handleHelpAsteroids,
+  handleHelpImages,
+  handleHelpDonki,
+  handleHelpSubscriptions,
+  handleHelpGeneral,
+} from './handlers/help';
+import { handleMainMenu } from './handlers/main-menu';
 import {
   handleImages,
   handleImageTopic,
@@ -292,6 +302,35 @@ export class Bot {
 
     // Premium actions
     this.registerAction('premium_close', handlePremiumClose, 'PremiumClose');
+
+    // APOD actions
+    this.registerAction(/^apod_full_/, handleApodFull, 'ApodFull');
+    this.registerAction('apod_random', handleApodRandom, 'ApodRandom');
+
+    // Main menu and quick actions
+    this.registerAction('main_menu', handleMainMenu, 'MainMenu');
+    this.registerAction('quick_apod', handleAPOD, 'QuickApod');
+    this.registerAction('quick_earth', handleEarth, 'QuickEarth');
+    this.registerAction('quick_asteroids', handleAsteroids, 'QuickAsteroids');
+    this.registerAction('quick_images', handleImages, 'QuickImages');
+    this.registerAction('quick_donki', handleDonki, 'QuickDonki');
+    this.registerAction('quick_subscribe', handleSubscribe, 'QuickSubscribe');
+    this.registerAction('help_menu', handleHelp, 'HelpMenu');
+    this.registerAction('help_apod', handleHelpApod, 'HelpApod');
+    this.registerAction('help_earth', handleHelpEarth, 'HelpEarth');
+    this.registerAction('help_asteroids', handleHelpAsteroids, 'HelpAsteroids');
+    this.registerAction('help_images', handleHelpImages, 'HelpImages');
+    this.registerAction('help_donki', handleHelpDonki, 'HelpDonki');
+    this.registerAction('help_subscriptions', handleHelpSubscriptions, 'HelpSubscriptions');
+    this.registerAction('help_general', handleHelpGeneral, 'HelpGeneral');
+    this.registerAction('settings_menu', async (ctx) => {
+      try {
+        await ctx.answerCbQuery();
+        await ctx.reply('⚙️ <b>Настройки</b>\n\nФункция настроек находится в разработке.', { parse_mode: 'HTML' });
+      } catch (error) {
+        await handleTelegramError(ctx, error, 'SettingsMenu');
+      }
+    }, 'SettingsMenu');
 
     // Обработка текстового ввода времени для подписки
     this.bot.on('text', handleSubscribeTimeInput);
