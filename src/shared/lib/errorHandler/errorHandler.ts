@@ -1,4 +1,4 @@
-import { Context } from 'telegraf';
+import { Context, Markup } from 'telegraf';
 import { BotContext } from '../../../processes/bot/types';
 import { logger } from '../../logger';
 
@@ -58,16 +58,84 @@ export async function handleTelegramError(
     errorMessage.includes('Request timeout') ||
     errorMessage.includes('timed out')
   ) {
-    await ctx.reply('⏱️ Превышено время ожидания ответа от NASA API. Пожалуйста, попробуйте позже.');
+    const message = '❌ <b>Не удалось получить данные</b>\n\n' +
+      'Запрос к серверу NASA занял слишком много времени. Это может произойти при высокой нагрузке на сервер.\n\n' +
+      '💡 <b>Что можно сделать:</b>\n' +
+      '• Подождать 1-2 минуты и попробовать снова\n' +
+      '• Попробовать другую команду (например, /images)\n' +
+      '• Вернуться позже';
+    
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('🔄 Повторить', 'retry_action')],
+      [Markup.button.callback('🖼️ Галерея', 'images_menu')],
+      [Markup.button.callback('🏠 Меню', 'main_menu')]
+    ]);
+
+    try {
+      await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
+    } catch {
+      // Если не удалось отправить с клавиатурой, отправляем без неё
+      await ctx.reply(message, { parse_mode: 'HTML' });
+    }
   } else if (errorMessage.includes('NASA API Error: 429')) {
-    await ctx.reply('⚠️ Превышен лимит запросов NASA (429). Подождите немного и повторите.');
-  } else if (errorMessage.includes('NASA API Error: 5')) {
-    await ctx.reply('⚠️ Сервис NASA временно недоступен (5xx). Попробуйте позже.');
-  } else if (errorMessage.includes('NASA API Error: 503') || 
-             errorMessage.includes('NASA API Error: 502') || 
-             errorMessage.includes('NASA API Error: 504')) {
-    await ctx.reply('⚠️ Сервис NASA временно недоступен (5xx). Попробуйте позже.');
+    const message = '❌ <b>Слишком много запросов</b>\n\n' +
+      'Вы превысили лимит запросов к API NASA. Это временное ограничение для защиты сервера.\n\n' +
+      '💡 <b>Что можно сделать:</b>\n' +
+      '• Подождать 1-2 минуты перед следующим запросом\n' +
+      '• Попробовать другую команду\n' +
+      '• Вернуться позже';
+    
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('🖼️ Галерея', 'images_menu')],
+      [Markup.button.callback('🏠 Меню', 'main_menu')]
+    ]);
+
+    try {
+      await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
+    } catch {
+      await ctx.reply(message, { parse_mode: 'HTML' });
+    }
+  } else if (
+    errorMessage.includes('NASA API Error: 5') ||
+    errorMessage.includes('NASA API Error: 503') || 
+    errorMessage.includes('NASA API Error: 502') || 
+    errorMessage.includes('NASA API Error: 504')
+  ) {
+    const message = '❌ <b>Не удалось получить данные</b>\n\n' +
+      'Похоже, сервер NASA временно недоступен. Это случается редко и обычно решается за несколько минут.\n\n' +
+      '💡 <b>Что можно сделать:</b>\n' +
+      '• Подождать 1-2 минуты и попробовать снова\n' +
+      '• Попробовать другую команду (например, /images)\n' +
+      '• Вернуться позже';
+    
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('🔄 Повторить', 'retry_action')],
+      [Markup.button.callback('🖼️ Галерея', 'images_menu')],
+      [Markup.button.callback('🏠 Меню', 'main_menu')]
+    ]);
+
+    try {
+      await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
+    } catch {
+      await ctx.reply(message, { parse_mode: 'HTML' });
+    }
   } else {
-    await ctx.reply('❌ Произошла ошибка. Попробуйте позже.');
+    const message = '❌ <b>Произошла ошибка</b>\n\n' +
+      'Что-то пошло не так при обработке вашего запроса. Мы уже знаем об этом и работаем над исправлением.\n\n' +
+      '💡 <b>Что можно сделать:</b>\n' +
+      '• Попробовать повторить запрос через минуту\n' +
+      '• Попробовать другую команду\n' +
+      '• Вернуться позже';
+    
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('🖼️ Галерея', 'images_menu')],
+      [Markup.button.callback('🏠 Меню', 'main_menu')]
+    ]);
+
+    try {
+      await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
+    } catch {
+      await ctx.reply(message, { parse_mode: 'HTML' });
+    }
   }
 }

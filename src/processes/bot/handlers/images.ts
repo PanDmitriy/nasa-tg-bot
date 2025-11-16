@@ -41,8 +41,9 @@ export async function handleImages(ctx: Context & BotContext) {
     keyboard.push(row);
   }
 
-  // Добавляем кнопку для своего запроса
+  // Добавляем кнопку для своего запроса и главное меню
   keyboard.push([Markup.button.callback('🔍 Свой запрос', 'images_custom_search')]);
+  keyboard.push([Markup.button.callback('🏠 Меню', 'main_menu')]);
 
   const message = `🖼️ <b>Галерея изображений NASA</b>\n\n` +
     `Выберите интересующую вас тему, и я покажу подборку изображений из архива NASA.\n\n` +
@@ -130,13 +131,20 @@ async function handleImageSearch(ctx: Context & BotContext, query: string) {
     const images = await container.imagesApi.searchImages(query, 20);
     
     if (images.length === 0) {
-      await ctx.reply(
-        `❌ По запросу "${query}" изображений не найдено.\n\n` +
-        `💡 Попробуйте:\n` +
-        `• Использовать английские слова (Mars, Apollo, Hubble)\n` +
-        `• Выбрать тему из меню командой /images`,
-        { parse_mode: 'HTML' }
-      );
+      const message = `❌ <b>Изображения не найдены</b>\n\n` +
+        `По запросу "<i>${query}</i>" изображений не найдено.\n\n` +
+        `💡 <b>Советы для поиска:</b>\n` +
+        `• Используйте английские слова (Mars, Apollo, Hubble)\n` +
+        `• Попробуйте более общие термины\n` +
+        `• Выберите тему из популярных категорий`;
+      
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('📋 Популярные темы', 'images_menu')],
+        [Markup.button.callback('🔍 Новый поиск', 'images_custom_search')],
+        [Markup.button.callback('🏠 Меню', 'main_menu')]
+      ]);
+      
+      await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
       try { await ctx.deleteMessage(loading.message_id); } catch {}
       return;
     }
@@ -188,7 +196,10 @@ async function showImage(
       Markup.button.callback(`${index + 1}/${total}`, 'images_info'),
       Markup.button.callback('➡️', 'images_next'),
     ],
-    [Markup.button.callback('🏠 Меню тем', 'images_menu')],
+    [
+      Markup.button.callback('🏠 Меню тем', 'images_menu'),
+      Markup.button.callback('🏠 Главное меню', 'main_menu')
+    ],
   ]);
 
   // Если есть ID сообщения для редактирования, редактируем его
