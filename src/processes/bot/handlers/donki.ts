@@ -54,6 +54,7 @@ async function createDonkiMainMenu(userId?: number): Promise<InlineKeyboardMarku
       ],
       [
         { text: '❌ Закрыть', callback_data: 'donki_close' },
+        { text: '🏠 Главное меню', callback_data: 'main_menu' },
       ],
     ],
   };
@@ -230,7 +231,10 @@ function createKeyboardWithModeToggle(
       text: isSimpleMode ? '📊 Подробный режим' : '💬 Простой режим',
       callback_data: 'donki_toggle_mode',
     },
+  ]);
+  keyboard.inline_keyboard.push([
     { text: '🔙 Назад к меню', callback_data: 'donki_menu' },
+    { text: '🏠 Главное меню', callback_data: 'main_menu' },
   ]);
 
   return keyboard;
@@ -375,10 +379,32 @@ export async function handleDonkiCMEData(ctx: Context & BotContext, days: number
     const cmes = sortEventsByDateDesc(await container.donkiApi.getCMEs(startDate, endDate), 'cme');
 
     if (cmes.length === 0) {
-      await ctx.editMessageText(
-        `❌ Не найдено корональных выбросов массы за выбранный период.`,
-        { reply_markup: { inline_keyboard: [[{ text: '🔙 Назад', callback_data: 'donki_menu' }]] } }
-      );
+      const message = `🌊 <b>Нет событий CME</b>\n\n` +
+        `За выбранный период не было зарегистрировано корональных выбросов массы.\n\n` +
+        `☀️ <b>Это хорошая новость!</b> Космическая погода спокойная, и это означает стабильные условия для спутников и космических миссий.\n\n` +
+        `💡 <b>Попробуйте:</b>\n` +
+        `• Выбрать другой период (неделя, месяц)\n` +
+        `• Посмотреть другие типы событий (вспышки, геобури)\n` +
+        `• Подписаться на уведомления о новых событиях`;
+      
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: '📅 Другой период', callback_data: 'donki_cme' },
+            { text: '☀️ Вспышки', callback_data: 'donki_flares' }
+          ],
+          [
+            { text: '🌍 Геобури', callback_data: 'donki_gst' },
+            { text: '🔔 Подписки', callback_data: 'donki_subscriptions' }
+          ],
+          [
+            { text: '🔙 Назад', callback_data: 'donki_menu' },
+            { text: '🏠 Главное меню', callback_data: 'main_menu' }
+          ]
+        ]
+      };
+      
+      await ctx.editMessageText(message, { parse_mode: 'HTML', reply_markup: keyboard });
       return;
     }
 
