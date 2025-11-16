@@ -6,6 +6,7 @@ import { AsteroidsService } from '../../features/asteroids/services/asteroidsSer
 import { DonkiApi } from '../../features/donki/api';
 import { EarthApi } from '../../features/earth/api';
 import { ImagesApi } from '../../features/images/api';
+import { SubscriptionService } from '../../features/subscriptions/subscription.service';
 
 /**
  * Простой DI контейнер для управления зависимостями
@@ -22,6 +23,7 @@ class DIContainer {
   // Сервисы
   private _apodService: ApodService | null = null;
   private _asteroidsService: AsteroidsService | null = null;
+  private _subscriptionService: SubscriptionService | null = null;
 
   // API клиенты (lazy initialization)
   get apodApi(): ApodApi {
@@ -74,6 +76,13 @@ class DIContainer {
     return this._asteroidsService;
   }
 
+  get subscriptionService(): SubscriptionService {
+    if (!this._subscriptionService) {
+      this._subscriptionService = new SubscriptionService();
+    }
+    return this._subscriptionService;
+  }
+
   /**
    * Метод для тестирования - позволяет заменить зависимости
    */
@@ -93,6 +102,10 @@ class DIContainer {
 
   setAsteroidsService(service: AsteroidsService): void {
     this._asteroidsService = service;
+  }
+
+  setSubscriptionService(service: SubscriptionService): void {
+    this._subscriptionService = service;
   }
 }
 

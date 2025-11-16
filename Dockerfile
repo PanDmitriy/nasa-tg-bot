@@ -1,22 +1,22 @@
-# Установка базового образа
-FROM node:14
-
-# Создание и установка директории приложения
+FROM node:18-alpine
 WORKDIR /app
 
-# Копирование зависимостей приложения
+# Копируем package files
 COPY package*.json ./
+COPY prisma ./prisma/
 
-# Установка зависимостей
+# Устанавливаем зависимости
 RUN npm ci
 
-# Копирование исходного кода приложения
+# Генерируем Prisma client
+RUN npm run db:generate
+
+# Копируем остальной код
 COPY . .
 
-# Определение порта, на котором будет работать приложение
-ENV PORT=3000
+# Собираем проект
+RUN npm run build
 
-EXPOSE $PORT
+EXPOSE 3000
 
-# Команда для запуска приложения
-CMD [ "npm", "start" ]
+CMD ["npm", "start"]

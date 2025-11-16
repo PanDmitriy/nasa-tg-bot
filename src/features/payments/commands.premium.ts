@@ -2,6 +2,7 @@ import { Context, Markup } from 'telegraf';
 import { BotContext } from '../../processes/bot/types';
 import { StripeService } from './stripe.service';
 import { prisma } from '../../shared/db/prisma';
+import { logger } from '../../shared/logger';
 
 // Ленивая инициализация StripeService
 let stripeService: StripeService | null = null;
@@ -81,7 +82,7 @@ export async function handlePremium(ctx: Context & BotContext) {
 
     await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
   } catch (error) {
-    console.error('Premium Error:', error);
+    logger.error('Premium Error', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     await ctx.reply(
       `❌ Произошла ошибка при создании платежной сессии. Попробуйте позже.\n\nОшибка: ${errorMessage}`

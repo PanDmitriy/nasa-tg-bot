@@ -1,8 +1,11 @@
 import { Config } from "../types";
+import { validateEnv } from "./validation";
+
+const env = validateEnv();
 
 export const developmentConfig: Config = {
   bot: {
-    token: process.env.TELEGRAM_BOT_TOKEN || '',
+    token: env.TELEGRAM_BOT_TOKEN,
     commands: [
       { command: 'start', description: 'Начать работу с ботом' },
       { command: 'apod', description: 'Фото дня от NASA' },
@@ -17,7 +20,7 @@ export const developmentConfig: Config = {
     ]
   },
   nasa: {
-    apiKey: process.env.NASA_API_KEY || '',
+    apiKey: env.NASA_API_KEY,
     baseUrl: 'https://api.nasa.gov'
   },
   apod: {

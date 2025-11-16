@@ -2,6 +2,7 @@ import { Telegraf } from 'telegraf';
 import { config } from '../../app/config';
 import { BotContext, UserSession } from './types';
 import { handleTelegramError } from '../../shared/lib/errorHandler/errorHandler';
+import { logger } from '../../shared/logger';
 import { rateLimitMiddleware } from '../../shared/lib/rateLimiter';
 import { handleStart } from './handlers/start';
 import { handleAPOD } from './handlers/apod';
@@ -52,12 +53,12 @@ import {
   handleSubscribeCancel,
   handleSubscribeClose,
   handleSubscribeTimeInput,
-} from '../../features/subscriptions/commands.subscribe';
+} from './handlers/subscriptions/subscribe';
 import {
   handleUnsubscribe,
   handleUnsubscribeItem,
   handleUnsubscribeClose,
-} from '../../features/subscriptions/commands.unsubscribe';
+} from './handlers/subscriptions/unsubscribe';
 import {
   handlePremium,
   handlePremiumClose,
@@ -124,7 +125,7 @@ export class Bot {
     }
 
     if (cleanedCount > 0) {
-      console.log(`Очищено ${cleanedCount} устаревших сессий`);
+      logger.info('Очищено устаревших сессий', { cleanedCount });
     }
   }
 
@@ -147,6 +148,20 @@ export class Bot {
     }
   }
 
+  private registerAction(
+    trigger: string | RegExp,
+    handler: (ctx: BotContext) => Promise<void> | void,
+    actionName: string,
+  ): void {
+    this.bot.action(trigger, async (ctx) => {
+      try {
+        await handler(ctx);
+      } catch (error) {
+        await handleTelegramError(ctx, error, actionName);
+      }
+    });
+  }
+
   private setupCommands() {
     this.bot.telegram.setMyCommands(config.bot.commands);
 
@@ -162,121 +177,121 @@ export class Bot {
     this.bot.command('premium', handlePremium);
 
     // Earth actions
-    this.bot.action('earth_retry', handleEarthRetry);
-    this.bot.action('earth_type_natural', handleEarthType);
-    this.bot.action('earth_type_enhanced', handleEarthType);
+    this.registerAction('earth_retry', handleEarthRetry, 'EarthRetry');
+    this.registerAction('earth_type_natural', handleEarthType, 'EarthTypeNatural');
+    this.registerAction('earth_type_enhanced', handleEarthType, 'EarthTypeEnhanced');
 
     // Images actions
-    this.bot.action(/^images_topic_/, handleImageTopic);
-    this.bot.action('images_prev', handleImagePrev);
-    this.bot.action('images_next', handleImageNext);
-    this.bot.action('images_menu', handleImagesMenu);
-    this.bot.action('images_custom_search', handleImagesCustomSearch);
-    this.bot.action('images_info', handleImageInfo);
+    this.registerAction(/^images_topic_/, handleImageTopic, 'ImagesTopic');
+    this.registerAction('images_prev', handleImagePrev, 'ImagesPrev');
+    this.registerAction('images_next', handleImageNext, 'ImagesNext');
+    this.registerAction('images_menu', handleImagesMenu, 'ImagesMenu');
+    this.registerAction('images_custom_search', handleImagesCustomSearch, 'ImagesCustomSearch');
+    this.registerAction('images_info', handleImageInfo, 'ImagesInfo');
 
     // DONKI actions
-    this.bot.action('donki_menu', handleDonkiMenu);
-    this.bot.action('donki_cme', handleDonkiCME);
-    this.bot.action('donki_flares', handleDonkiFlares);
-    this.bot.action('donki_sep', handleDonkiSEP);
-    this.bot.action('donki_gst', handleDonkiGST);
-    this.bot.action('donki_ips', handleDonkiIPS);
-    this.bot.action('donki_notifications', handleDonkiNotifications);
-    this.bot.action('donki_wsaenlil', handleDonkiWSAEnlil);
-    this.bot.action('donki_close', handleDonkiClose);
+    this.registerAction('donki_menu', handleDonkiMenu, 'DonkiMenu');
+    this.registerAction('donki_cme', handleDonkiCME, 'DonkiCME');
+    this.registerAction('donki_flares', handleDonkiFlares, 'DonkiFlares');
+    this.registerAction('donki_sep', handleDonkiSEP, 'DonkiSEP');
+    this.registerAction('donki_gst', handleDonkiGST, 'DonkiGST');
+    this.registerAction('donki_ips', handleDonkiIPS, 'DonkiIPS');
+    this.registerAction('donki_notifications', handleDonkiNotifications, 'DonkiNotifications');
+    this.registerAction('donki_wsaenlil', handleDonkiWSAEnlil, 'DonkiWSAEnlil');
+    this.registerAction('donki_close', handleDonkiClose, 'DonkiClose');
 
     // DONKI date selections
-    this.bot.action(/^donki_cme_(today|week|month|7days)$/, async (ctx) => {
-      if ('data' in ctx.callbackQuery) {
+    this.registerAction(/^donki_cme_(today|week|month|7days)$/, async (ctx) => {
+      if ('data' in ctx.callbackQuery && ctx.callbackQuery.data) {
         const period = ctx.callbackQuery.data.split('_').pop();
         const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
-        await handleDonkiCMEData(ctx as BotContext, days);
+        await handleDonkiCMEData(ctx, days);
       }
-    });
-    
-    this.bot.action(/^donki_sep_(today|week|month|7days)$/, async (ctx) => {
-      if ('data' in ctx.callbackQuery) {
+    }, 'DonkiCMEData');
+
+    this.registerAction(/^donki_sep_(today|week|month|7days)$/, async (ctx) => {
+      if ('data' in ctx.callbackQuery && ctx.callbackQuery.data) {
         const period = ctx.callbackQuery.data.split('_').pop();
         const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
-        await handleDonkiSEPData(ctx as BotContext, days);
+        await handleDonkiSEPData(ctx, days);
       }
-    });
-    
-    this.bot.action(/^donki_gst_(today|week|month|7days)$/, async (ctx) => {
-      if ('data' in ctx.callbackQuery) {
+    }, 'DonkiSEPData');
+
+    this.registerAction(/^donki_gst_(today|week|month|7days)$/, async (ctx) => {
+      if ('data' in ctx.callbackQuery && ctx.callbackQuery.data) {
         const period = ctx.callbackQuery.data.split('_').pop();
         const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
-        await handleDonkiGSTData(ctx as BotContext, days);
+        await handleDonkiGSTData(ctx, days);
       }
-    });
-    
-    this.bot.action(/^donki_ips_(today|week|month|7days)$/, async (ctx) => {
-      if ('data' in ctx.callbackQuery) {
+    }, 'DonkiGSTData');
+
+    this.registerAction(/^donki_ips_(today|week|month|7days)$/, async (ctx) => {
+      if ('data' in ctx.callbackQuery && ctx.callbackQuery.data) {
         const period = ctx.callbackQuery.data.split('_').pop();
         const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
-        await handleDonkiIPSData(ctx as BotContext, days);
+        await handleDonkiIPSData(ctx, days);
       }
-    });
+    }, 'DonkiIPSData');
 
     // DONKI flares period selection
-    this.bot.action(/^donki_flares_(today|week|month|7days)$/, async (ctx) => {
-      if ('data' in ctx.callbackQuery) {
+    this.registerAction(/^donki_flares_(today|week|month|7days)$/, async (ctx) => {
+      if ('data' in ctx.callbackQuery && ctx.callbackQuery.data) {
         const period = ctx.callbackQuery.data.split('_').pop();
         const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 7;
-        await handleDonkiFlaresPeriod(ctx as BotContext, days);
+        await handleDonkiFlaresPeriod(ctx, days);
       }
-    });
+    }, 'DonkiFlaresPeriod');
 
     // DONKI flare class selection
-    this.bot.action(/^donki_flares_class_/, async (ctx) => {
-      if ('data' in ctx.callbackQuery) {
+    this.registerAction(/^donki_flares_class_/, async (ctx) => {
+      if ('data' in ctx.callbackQuery && ctx.callbackQuery.data) {
         const classType = ctx.callbackQuery.data.split('_').pop() || 'ALL';
-        await handleDonkiFlaresData(ctx as BotContext, classType);
+        await handleDonkiFlaresData(ctx, classType);
       }
-    });
+    }, 'DonkiFlaresClass');
 
     // DONKI item navigation
-    this.bot.action(/^donki_\w+_item_\d+$/, async (ctx) => {
-      if ('data' in ctx.callbackQuery) {
-        await handleDonkiItemNavigation(ctx as BotContext, ctx.callbackQuery.data);
+    this.registerAction(/^donki_\w+_item_\d+$/, async (ctx) => {
+      if ('data' in ctx.callbackQuery && ctx.callbackQuery.data) {
+        await handleDonkiItemNavigation(ctx, ctx.callbackQuery.data);
       }
-    });
+    }, 'DonkiItemNavigation');
 
     // DONKI mode toggle
-    this.bot.action('donki_toggle_mode', handleDonkiToggleMode);
-    this.bot.action('donki_set_mode', handleDonkiSetMode);
+    this.registerAction('donki_toggle_mode', handleDonkiToggleMode, 'DonkiToggleMode');
+    this.registerAction('donki_set_mode', handleDonkiSetMode, 'DonkiSetMode');
 
     // DONKI subscriptions
-    this.bot.action('donki_subscriptions', handleDonkiSubscriptions);
-    this.bot.action('donki_sub_cme_menu', handleDonkiCMESubscriptionMenu);
-    this.bot.action('donki_sub_cme_extreme', async (ctx) => {
-      await handleDonkiCMESubscription(ctx as BotContext, 'extreme');
-    });
-    this.bot.action('donki_sub_cme_high', async (ctx) => {
-      await handleDonkiCMESubscription(ctx as BotContext, 'high');
-    });
-    this.bot.action('donki_sub_cme_all', async (ctx) => {
-      await handleDonkiCMESubscription(ctx as BotContext, 'all');
-    });
-    this.bot.action('donki_sub_cme_none', async (ctx) => {
-      await handleDonkiCMESubscription(ctx as BotContext, null);
-    });
-    this.bot.action('donki_sub_notifications_toggle', handleDonkiNotificationsSubscription);
-    this.bot.action('donki_sub_wsaenlil_toggle', handleDonkiWSAEnlilSubscription);
+    this.registerAction('donki_subscriptions', handleDonkiSubscriptions, 'DonkiSubscriptions');
+    this.registerAction('donki_sub_cme_menu', handleDonkiCMESubscriptionMenu, 'DonkiCMESubscriptionMenu');
+    this.registerAction('donki_sub_cme_extreme', async (ctx) => {
+      await handleDonkiCMESubscription(ctx, 'extreme');
+    }, 'DonkiCMESubscriptionExtreme');
+    this.registerAction('donki_sub_cme_high', async (ctx) => {
+      await handleDonkiCMESubscription(ctx, 'high');
+    }, 'DonkiCMESubscriptionHigh');
+    this.registerAction('donki_sub_cme_all', async (ctx) => {
+      await handleDonkiCMESubscription(ctx, 'all');
+    }, 'DonkiCMESubscriptionAll');
+    this.registerAction('donki_sub_cme_none', async (ctx) => {
+      await handleDonkiCMESubscription(ctx, null);
+    }, 'DonkiCMESubscriptionNone');
+    this.registerAction('donki_sub_notifications_toggle', handleDonkiNotificationsSubscription, 'DonkiNotificationsToggle');
+    this.registerAction('donki_sub_wsaenlil_toggle', handleDonkiWSAEnlilSubscription, 'DonkiWSAEnlilToggle');
 
     // Subscribe actions
-    this.bot.action(/^subscribe_type_(apod|earth|donki)$/, handleSubscribeType);
-    this.bot.action(/^subscribe_time_\d+$/, handleSubscribeTime);
-    this.bot.action('subscribe_confirm', handleSubscribeConfirm);
-    this.bot.action('subscribe_cancel', handleSubscribeCancel);
-    this.bot.action('subscribe_close', handleSubscribeClose);
+    this.registerAction(/^subscribe_type_(apod|earth|donki)$/, handleSubscribeType, 'SubscribeType');
+    this.registerAction(/^subscribe_time_\d+$/, handleSubscribeTime, 'SubscribeTime');
+    this.registerAction('subscribe_confirm', handleSubscribeConfirm, 'SubscribeConfirm');
+    this.registerAction('subscribe_cancel', handleSubscribeCancel, 'SubscribeCancel');
+    this.registerAction('subscribe_close', handleSubscribeClose, 'SubscribeClose');
 
     // Unsubscribe actions
-    this.bot.action(/^unsubscribe_\d+$/, handleUnsubscribeItem);
-    this.bot.action('unsubscribe_close', handleUnsubscribeClose);
+    this.registerAction(/^unsubscribe_\d+$/, handleUnsubscribeItem, 'UnsubscribeItem');
+    this.registerAction('unsubscribe_close', handleUnsubscribeClose, 'UnsubscribeClose');
 
     // Premium actions
-    this.bot.action('premium_close', handlePremiumClose);
+    this.registerAction('premium_close', handlePremiumClose, 'PremiumClose');
 
     // Обработка текстового ввода времени для подписки
     this.bot.on('text', handleSubscribeTimeInput);
@@ -284,13 +299,13 @@ export class Bot {
 
   public async start() {
     await this.bot.launch();
-    console.log('Bot started');
+    logger.info('Bot started');
   }
 
   public async stop() {
     this.stopSessionCleanup();
     await this.bot.stop();
-    console.log('Bot stopped');
+    logger.info('Bot stopped');
   }
 
   public getTelegram() {

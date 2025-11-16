@@ -1,6 +1,6 @@
-import * as Sentry from '@sentry/node';
 import { Context } from 'telegraf';
 import { BotContext } from '../../../processes/bot/types';
+import { logger } from '../../logger';
 
 /**
  * Кастомный класс ошибки для бота NASA
@@ -28,11 +28,11 @@ export function handleError(error: unknown): string {
   }
 
   if (error instanceof Error) {
-    console.error('Error:', error.message);
+    logger.error('Error', error);
     return '🚫 Произошла ошибка. Попробуйте позже.';
   }
 
-  console.error('Unknown error:', error);
+  logger.error('Unknown error', error);
   return '🚫 Произошла неизвестная ошибка. Попробуйте позже.';
 }
 
@@ -44,19 +44,9 @@ export async function handleTelegramError(
   error: unknown,
   context: string = 'Handler'
 ): Promise<void> {
-  console.error(`${context} Error:`, error);
-
-  // Отправляем ошибку в Sentry с контекстом
-  const sentryError = error instanceof Error ? error : new Error(String(error));
-  Sentry.captureException(sentryError, {
-    tags: {
-      handler: context,
-      chatId: ctx.chat?.id?.toString(),
-    },
-    extra: {
-      updateType: ctx.updateType,
-      message: ctx.message ? JSON.stringify(ctx.message) : undefined,
-    },
+  logger.error(`${context} Error`, error, {
+    chatId: ctx.chat?.id,
+    updateType: ctx.updateType,
   });
 
   const errorMessage = error instanceof Error ? error.message : String(error);

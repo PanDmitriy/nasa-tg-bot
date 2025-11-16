@@ -1,5 +1,6 @@
 import { ApodApi } from '../api';
 import { config } from '../../../app/config';
+import { getCached } from '../../../shared/lib/cache';
 
 export interface ApodResponse {
   date: string;
@@ -41,10 +42,17 @@ export class ApodService {
 
   /**
    * Получает случайное изображение дня
+   * Кешируется на 1 час, чтобы пользователи получали одинаковый случайный APOD в течение часа
    */
   async getRandomApod(): Promise<ApodResponse> {
-    const randomDate = this.generateRandomDate();
-    return this.apodApi.getApod(randomDate);
+    return getCached(
+      'apod:random:hourly',
+      async () => {
+        const randomDate = this.generateRandomDate();
+        return this.apodApi.getApod(randomDate);
+      },
+      3600 // 1 час
+    );
   }
 
   /**

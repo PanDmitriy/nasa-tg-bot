@@ -1,4 +1,4 @@
-import { prisma } from '../../shared/db/prisma';
+import { subscriptionRepository } from '../../shared/db/repositories/subscription.repository';
 
 export type SubscriptionType = 'apod' | 'earth' | 'donki';
 
@@ -7,7 +7,7 @@ export interface CreateSubscriptionParams {
   chatId: string;
   type: SubscriptionType;
   hourUtc: number;
-  params?: Record<string, any>;
+  params?: import('../../entities/subscription/types').SubscriptionParams;
 }
 
 export class SubscriptionService {
@@ -15,72 +15,42 @@ export class SubscriptionService {
    * Создает новую подписку
    */
   async create(params: CreateSubscriptionParams) {
-    return await prisma.subscription.create({
-      data: {
-        telegramId: params.telegramId,
-        chatId: params.chatId,
-        type: params.type,
-        hourUtc: params.hourUtc,
-        params: params.params ?? undefined,
-        enabled: true,
-      },
-    });
+    return await subscriptionRepository.create(params);
   }
 
   /**
    * Получает все подписки для конкретного чата
    */
   async getByChat(chatId: string) {
-    return await prisma.subscription.findMany({
-      where: { chatId },
-      orderBy: { createdAt: 'desc' },
-    });
+    return await subscriptionRepository.findByChat(chatId);
   }
 
   /**
    * Получает все активные подписки (enabled = true)
    */
   async listAllEnabled() {
-    return await prisma.subscription.findMany({
-      where: { enabled: true },
-      orderBy: { hourUtc: 'asc' },
-    });
+    return await subscriptionRepository.findEnabled();
   }
 
   /**
    * Переключает статус подписки (enabled/disabled)
    */
   async toggle(id: number) {
-    const subscription = await prisma.subscription.findUnique({
-      where: { id },
-    });
-
-    if (!subscription) {
-      throw new Error(`Subscription with id ${id} not found`);
-    }
-
-    return await prisma.subscription.update({
-      where: { id },
-      data: { enabled: !subscription.enabled },
-    });
+    return await subscriptionRepository.toggle(id);
   }
 
   /**
    * Удаляет подписку
    */
   async delete(id: number) {
-    return await prisma.subscription.delete({
-      where: { id },
-    });
+    return await subscriptionRepository.delete(id);
   }
 
   /**
    * Получает подписку по ID
    */
   async getById(id: number) {
-    return await prisma.subscription.findUnique({
-      where: { id },
-    });
+    return await subscriptionRepository.findById(id);
   }
 
   /**
@@ -88,21 +58,7 @@ export class SubscriptionService {
    * Проверяет, что подписка принадлежит указанному chatId
    */
   async disable(id: number, chatId: string) {
-    const subscription = await prisma.subscription.findFirst({
-      where: {
-        id,
-        chatId,
-      },
-    });
-
-    if (!subscription) {
-      throw new Error(`Subscription with id ${id} not found for chat ${chatId}`);
-    }
-
-    return await prisma.subscription.update({
-      where: { id },
-      data: { enabled: false },
-    });
+    return await subscriptionRepository.disable(id, chatId);
   }
 }
 

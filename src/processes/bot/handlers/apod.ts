@@ -3,6 +3,7 @@ import { BotContext } from '../types';
 import { container } from '../../../shared/di/container';
 import { config } from '../../../app/config';
 import { getMessageId } from '../../../shared/lib/telegramHelpers';
+import { logger } from '../../../shared/logger';
 
 export async function handleAPOD(ctx: Context & BotContext) {
   // Показываем индикатор загрузки и сообщение пользователю
@@ -62,7 +63,7 @@ export async function handleAPOD(ctx: Context & BotContext) {
       try { await ctx.deleteMessage(messageId); } catch {}
     }
   } catch (error) {
-    console.error('APOD Error:', error);
+    logger.error('APOD Error', error);
     
     // Удаляем сообщение о загрузке при ошибке
     const messageId = getMessageId(loadingMessage);
