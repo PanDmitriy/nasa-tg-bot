@@ -274,10 +274,11 @@ export function formatCMESimple(cme: DonkiCME): string {
   let text = `${risk.emoji} <b>Солнечный шторм</b>\n\n`;
   text += `📅 <b>Когда:</b> ${time}\n`;
   text += `${risk.emoji} <b>Уровень:</b> ${risk.description}\n`;
-  text += `⚡ <b>Скорость:</b> ${Math.round(speed)} км/с\n`;
+  text += `⚡ <b>Скорость:</b> ${Math.round(speed)} км/с\n\n`;
+  text += `─────────────────────\n\n`;
   
   if (analysis && speed > 0) {
-    text += `\n💡 <b>Что это значит:</b>\n`;
+    text += `💡 <b>Что это значит:</b>\n\n`;
     text += `Массивное облако солнечной плазмы выброшено с Солнца. `;
     
     if (speed >= 1000) {
@@ -290,7 +291,9 @@ export function formatCMESimple(cme: DonkiCME): string {
       text += `Слабая активность, минимальное влияние на Землю. `;
     }
     
-    text += `Ожидаемое прибытие к Земле: примерно через ${arrivalEstimate}.\n`;
+    text += `Ожидаемое прибытие к Земле: примерно через ${arrivalEstimate}.\n\n`;
+    text += `─────────────────────\n\n`;
+    text += `⏱️ <b>Ожидаемое прибытие:</b> через ${arrivalEstimate}\n`;
   }
 
   if (cme.link) {
@@ -311,10 +314,11 @@ export function formatFlareSimple(flare: DonkiFlare): string {
 
   let text = `${risk.emoji} <b>Солнечная вспышка</b>\n\n`;
   text += `📅 <b>Когда:</b> ${beginTime}\n`;
-  text += `${risk.emoji} <b>Сила:</b> ${flare.classType || 'Не указано'} класс (${risk.description})\n`;
+  text += `${risk.emoji} <b>Сила:</b> ${flare.classType || 'Не указано'} класс (${risk.description})\n\n`;
+  text += `─────────────────────\n\n`;
 
   if (flare.classType) {
-    text += `\n💡 <b>Что это значит:</b>\n`;
+    text += `💡 <b>Что это значит:</b>\n\n`;
     
     if (flare.classType.startsWith('X')) {
       text += `Это одна из самых мощных вспышек! Может вызвать сбои в радио- и спутниковой связи, проблемы с GPS. `;
@@ -328,7 +332,8 @@ export function formatFlareSimple(flare: DonkiFlare): string {
       text += `Слабая вспышка, минимальное влияние на Землю. `;
     }
     
-    text += `Вспышки класса ${flare.classType} происходят довольно часто на Солнце.\n`;
+    text += `Вспышки класса ${flare.classType} происходят довольно часто на Солнце.\n\n`;
+    text += `─────────────────────\n`;
   }
 
   return text;
@@ -343,12 +348,13 @@ export function formatSEPSimple(sep: DonkiSEP): string {
   });
 
   let text = `⚡ <b>Радиационная буря</b>\n\n`;
-  text += `📅 <b>Когда:</b> ${eventTime}\n`;
-
-  text += `\n💡 <b>Что это значит:</b>\n`;
+  text += `📅 <b>Когда:</b> ${eventTime}\n\n`;
+  text += `─────────────────────\n\n`;
+  text += `💡 <b>Что это значит:</b>\n\n`;
   text += `Солнце выбросило поток высокоэнергетических частиц в космос. `;
   text += `Это может быть опасно для космонавтов и пассажиров высоко летящих самолетов. `;
-  text += `Обычно не представляет опасности для людей на Земле благодаря атмосфере и магнитному полю планеты.\n`;
+  text += `Обычно не представляет опасности для людей на Земле благодаря атмосфере и магнитному полю планеты.\n\n`;
+  text += `─────────────────────\n`;
 
   return text;
 }
@@ -373,12 +379,12 @@ export function formatGSTSimple(gst: DonkiGST): string {
   text += `${risk.emoji} <b>Интенсивность:</b> ${risk.description}`;
   
   if (maxKp > 0) {
-    text += ` (Kp=${maxKp.toFixed(1)})\n`;
+    text += ` (Kp=${maxKp.toFixed(1)})\n\n`;
   } else {
-    text += `\n`;
+    text += `\n\n`;
   }
-
-  text += `\n💡 <b>Что это значит:</b>\n`;
+  text += `─────────────────────\n\n`;
+  text += `💡 <b>Что это значит:</b>\n\n`;
   
   if (maxKp >= 9) {
     text += `Экстремально сильная геомагнитная буря! Может вызвать серьезные сбои в энергосистемах, радиосвязи и GPS. `;
@@ -393,7 +399,8 @@ export function formatGSTSimple(gst: DonkiGST): string {
     text += `Слабая геомагнитная активность. Минимальное влияние на технологии. `;
   }
   
-  text += `Геомагнитные бури происходят когда солнечный ветер взаимодействует с магнитным полем Земли.\n`;
+  text += `Геомагнитные бури происходят когда солнечный ветер взаимодействует с магнитным полем Земли.\n\n`;
+  text += `─────────────────────\n`;
 
   return text;
 }
