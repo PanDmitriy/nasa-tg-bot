@@ -13,6 +13,15 @@ interface SubscribeSession {
 }
 
 /**
+ * Генерирует визуальный индикатор прогресса
+ */
+function getProgressIndicator(step: number, total: number): string {
+  const filled = '🟩'.repeat(step);
+  const empty = '⬜'.repeat(total - step);
+  return `${filled}${empty} ${step}/${total}`;
+}
+
+/**
  * Главный handler для команды /subscribe
  */
 export async function handleSubscribe(ctx: Context & BotContext) {
@@ -28,7 +37,9 @@ export async function handleSubscribe(ctx: Context & BotContext) {
     step: 'type',
   } as SubscribeSession;
 
-  const message = `📅 <b>Подписка на Daily APOD</b>\n\n` +
+  const progress = getProgressIndicator(1, 3);
+  const message = `📅 <b>Подписка на Daily APOD</b>\n` +
+    `${progress}\n\n` +
     `Выберите тип подписки:`;
 
   const keyboard = Markup.inlineKeyboard([
@@ -76,7 +87,9 @@ export async function handleSubscribeType(ctx: Context & BotContext) {
     donki: '🌊 DONKI (Космическая погода)',
   };
 
-  const message = `📅 <b>Выбрано: ${typeNames[type]}</b>\n\n` +
+  const progress = getProgressIndicator(2, 3);
+  const message = `📅 <b>Подписка: ${typeNames[type]}</b>\n` +
+    `${progress}\n\n` +
     `Выберите время доставки (UTC):\n` +
     `Или введите час вручную (0-23)`;
 
@@ -141,7 +154,9 @@ export async function handleSubscribeTime(ctx: Context & BotContext) {
     donki: '🌊 DONKI',
   };
 
-  const message = `📅 <b>Подтверждение подписки</b>\n\n` +
+  const progress = getProgressIndicator(3, 3);
+  const message = `📅 <b>Подтверждение подписки</b>\n` +
+    `${progress}\n\n` +
     `Тип: ${typeNames[type]}\n` +
     `Время доставки: ${hourUtc}:00 UTC\n\n` +
     `Подтвердите создание подписки:`;
@@ -301,7 +316,9 @@ export async function handleSubscribeTimeInput(ctx: Context & BotContext) {
     donki: '🌊 DONKI',
   };
 
-  const message = `📅 <b>Подтверждение подписки</b>\n\n` +
+  const progress = getProgressIndicator(3, 3);
+  const message = `📅 <b>Подтверждение подписки</b>\n` +
+    `${progress}\n\n` +
     `Тип: ${typeNames[type]}\n` +
     `Время доставки: ${hourUtc}:00 UTC\n\n` +
     `Подтвердите создание подписки:`;
