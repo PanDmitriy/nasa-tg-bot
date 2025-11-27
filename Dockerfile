@@ -16,6 +16,9 @@ RUN npm ci
 COPY . .
 
 # Генерируем Prisma client
+# DATABASE_URL нужен только для конфигурации, но не для генерации клиента
+# Используем фиктивное значение для сборки
+ENV DATABASE_URL="file:./data/bot.db"
 RUN npm run db:generate
 
 # Собираем проект
