@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  nasa-tg-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: nasa-tg-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Переопределяем DATABASE_URL для Docker (если нужно)
+      - DATABASE_URL=${DATABASE_URL:-file:./data/bot.db}
+    volumes:
+      # Монтируем директорию с базой данных для персистентности
+      - ./data:/app/data
+    ports:
+      # Порт для webhook сервера WebPay (если используется)
+      - "${WEBHOOK_PORT:-3000}:3000"
+    # Healthcheck опционален - работает только если webhook сервер запущен
+    # Раскомментируйте, если используете WebPay webhook
+    # healthcheck:
+    #   test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))\" || exit 1"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
+    networks:
+      - nasa-bot-network
+
+networks:
+  nasa-bot-network:
+    driver: bridge

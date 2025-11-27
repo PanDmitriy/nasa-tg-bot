@@ -387,20 +387,6 @@ WEBHOOK_PORT=3000
 FROM node:18-alpine
 ```
 
-#### 16. Makefile содержит неправильное имя образа
-**Проблема:** Makefile использует `tg-gpt-chat` вместо `nasa-tg-bot`.
-
-**Файлы:**
-- `Makefile:2, 5`
-
-**Решение:**
-```makefile
-build: 
-	docker build -t nasa-tg-bot .
-
-run:
-	docker run -d -p 3000:3000 --name nasa-tg-bot --rm nasa-tg-bot
-```
 
 #### 17. Dockerfile не копирует Prisma schema перед генерацией
 **Проблема:** Dockerfile копирует все файлы сразу, но Prisma клиент должен генерироваться после копирования schema.
@@ -686,7 +672,6 @@ async processSubscriptions() {
 
 1. **Создать `.env.example`** — без этого невозможно настроить проект
 2. **Исправить Dockerfile** — обновить Node.js версию и добавить правильную сборку Prisma
-3. **Исправить Makefile** — правильное имя образа
 4. **Убрать `any` типы** — заменить на конкретные типы для params подписок
 5. **Добавить обработку ошибок в action handlers** — предотвратить незакрытые промисы
 6. **Добавить валидацию env через zod** — строгая типизация конфигурации

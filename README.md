@@ -129,11 +129,72 @@ npm run build
 npm start
 ```
 
-### Docker
+### Docker Compose (рекомендуется)
+
+Самый простой способ запуска проекта:
+
+1. Убедитесь, что создан файл `.env` с необходимыми переменными окружения (см. раздел "Переменные окружения")
+
+2. Создайте директорию для базы данных (если её нет):
 ```bash
-docker build -t nasa-tg-bot .
-docker run -d --env-file .env nasa-tg-bot
+mkdir -p data
 ```
+
+3. Запустите проект:
+```bash
+# Запуск в фоновом режиме
+docker-compose up -d
+
+# Просмотр логов
+docker-compose logs -f
+
+# Остановка
+docker-compose down
+
+# Пересборка и запуск
+docker-compose up -d --build
+```
+
+**Примечание:** 
+- База данных SQLite будет храниться в директории `./data` на хосте, что обеспечивает персистентность данных между перезапусками контейнера.
+- Перед первым запуском в Docker необходимо применить миграции базы данных. Это можно сделать двумя способами:
+  1. **Локально перед запуском контейнера:**
+     ```bash
+     npm install
+     npm run db:generate
+     npm run db:migrate
+     ```
+  2. **Внутри контейнера (временный контейнер для миграций):**
+     ```bash
+     docker-compose run --rm nasa-tg-bot sh -c "npm install && npm run db:generate && npm run db:migrate"
+     ```
+
+### Docker (без Compose)
+
+Если вы предпочитаете использовать Docker напрямую:
+
+```bash
+# Сборка образа
+docker build -t nasa-tg-bot .
+
+# Запуск контейнера
+docker run -d \
+  --name nasa-tg-bot \
+  --env-file .env \
+  -v $(pwd)/data:/app/data \
+  -p 3000:3000 \
+  --restart unless-stopped \
+  nasa-tg-bot
+
+# Просмотр логов
+docker logs -f nasa-tg-bot
+
+# Остановка
+docker stop nasa-tg-bot
+docker rm nasa-tg-bot
+```
+
+**Важно:** Убедитесь, что директория `data/` существует и доступна для записи, так как в ней будет храниться база данных SQLite.
 
 ## Команды бота
 
