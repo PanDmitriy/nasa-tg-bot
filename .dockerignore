@@ -15,7 +15,6 @@ coverage
 *.md
 !README.md
 tests
-tsconfig.json
 jest.config.js
 CODE_AUDIT.md
 UX_AUDIT.md
