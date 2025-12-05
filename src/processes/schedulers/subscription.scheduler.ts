@@ -75,7 +75,21 @@ export class SubscriptionScheduler {
 
       // Обрабатываем каждую подписку
       for (const subscription of subscriptionsForCurrentHour) {
-        await this.sendSubscriptionNotification(subscription);
+        // Проверяем и приводим тип подписки к литеральному типу
+        if (subscription.type !== 'apod' && subscription.type !== 'earth' && subscription.type !== 'donki') {
+          logger.warn('Пропущена подписка с недопустимым типом', {
+            subscriptionId: subscription.id,
+            type: subscription.type,
+          });
+          continue;
+        }
+        await this.sendSubscriptionNotification({
+          id: subscription.id,
+          telegramId: subscription.telegramId,
+          chatId: subscription.chatId,
+          type: subscription.type as 'apod' | 'earth' | 'donki',
+          params: subscription.params as SubscriptionParams,
+        });
       }
     } catch (error) {
       logger.error('SubscriptionScheduler: ошибка при обработке подписок', error);

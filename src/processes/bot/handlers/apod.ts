@@ -97,6 +97,10 @@ export async function handleApodFull(ctx: Context & BotContext) {
     await ctx.answerCbQuery('📖 Загружаю полное описание...');
     
     const data = getCallbackQueryData(ctx);
+    if (!data) {
+      await ctx.reply('❌ Ошибка: не удалось получить данные запроса.');
+      return;
+    }
     const date = data.replace('apod_full_', '');
     
     const apod = await container.apodService.getApod(date);

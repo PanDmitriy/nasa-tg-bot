@@ -14,7 +14,7 @@ const envSchema = z.object({
   WEBPAY_TEST_URL: z.string().optional(),
   PREMIUM_PRICE_BYN: z.string().optional(),
   DOMAIN_URL: z.string().default('http://localhost:3000'),
-  WEBHOOK_PORT: z.string().transform(Number).pipe(z.number().int().positive()).default('3000'),
+  WEBHOOK_PORT: z.string().transform(Number).pipe(z.number().int().positive()).default(3000),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -25,7 +25,7 @@ export function validateEnv(): Env {
   } catch (error) {
     if (error instanceof z.ZodError) {
       logger.error('Ошибки конфигурации');
-      error.errors.forEach((err) => {
+      error.issues.forEach((err: z.ZodIssue) => {
         logger.error('Конфигурация: некорректное значение', undefined, {
           path: err.path.join('.'),
           message: err.message,

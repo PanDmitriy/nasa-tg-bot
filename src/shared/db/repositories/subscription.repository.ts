@@ -1,4 +1,5 @@
 import { prisma } from '../prisma';
+import { Prisma } from '@prisma/client';
 import { SubscriptionParams } from '../../../entities/subscription/types';
 
 export type SubscriptionType = 'apod' | 'earth' | 'donki';
@@ -22,7 +23,7 @@ export class SubscriptionRepository {
         chatId: data.chatId,
         type: data.type,
         hourUtc: data.hourUtc,
-        params: data.params ?? undefined,
+        params: data.params ? (data.params as unknown as Prisma.InputJsonValue) : undefined,
         enabled: true,
       },
     });
@@ -80,7 +81,9 @@ export class SubscriptionRepository {
         ...(data.chatId && { chatId: data.chatId }),
         ...(data.type && { type: data.type }),
         ...(data.hourUtc !== undefined && { hourUtc: data.hourUtc }),
-        ...(data.params !== undefined && { params: data.params }),
+        ...(data.params !== undefined && { 
+          params: data.params ? (data.params as unknown as Prisma.InputJsonValue) : Prisma.JsonNull 
+        }),
         ...(data.enabled !== undefined && { enabled: data.enabled }),
       },
     });

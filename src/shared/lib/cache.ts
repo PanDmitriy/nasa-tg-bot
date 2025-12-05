@@ -46,6 +46,9 @@ export function getFromCache<T>(key: string): T | undefined {
  * Сохраняет значение в кеш
  */
 export function setCache<T>(key: string, value: T, ttl?: number): boolean {
-  return cache.set(key, value, ttl);
+  if (ttl !== undefined) {
+    return cache.set(key, value, ttl);
+  }
+  return cache.set(key, value);
 }
 
